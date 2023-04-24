@@ -1,5 +1,7 @@
 #+TITLE: Roteiro Kubernetes
 
+Versão 0.2
+
 #+begin_src sh :results none
 chmod +x *.sh
 #+end_src
@@ -28,9 +30,13 @@ chmod +x *.sh
   pip3 install --upgrade pip
 #+end_src
 * Atualizar sistemas
+Comando para executar o playbook para atualizar o sistema operacional
+dos hosts.
 #+begin_src sh :tangle update-systems.sh
 ansible-playbook -i ./inventory.ini update-systems-playbook.yaml --ask-become-pass
 #+end_src
+Playbook ansible especificando o que se deve fazer, nesse caso,
+atualizar os softwares presentes nos hosts.
 #+begin_src text :tangle update-systems-playbook.yaml
 - name: Atualiza sistema
   hosts: server*
@@ -41,6 +47,7 @@ ansible-playbook -i ./inventory.ini update-systems-playbook.yaml --ask-become-pa
       name: '*'
       state: latest
 #+end_src
+Inventário contendo configuração para acesso aos hosts.
 #+begin_src text :tangle inventory.ini
 server1 ansible_host=10.20.1.247 ansible_user=igor
 server2 ansible_host=10.20.1.249 ansible_user=igor
