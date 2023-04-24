@@ -1,0 +1,8 @@
+- name: Atualiza sistema
+  hosts: server*
+  become: true
+  tasks:
+  - name: Atualiza sistema
+    package:
+      name: '*'
+      state: latest

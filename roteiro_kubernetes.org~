@@ -1,0 +1,43 @@
+#+TITLE: Roteiro Kubernetes
+
+* Clonar VMs
+* SSH
+** Cria chaves assimétricas
+#+begin_src sh 
+  HOSTS=()
+  # Cria as chaves
+  ssh-keygen -t rsa -b 4096 -f ~/$USER/.ssh/id_rsa -P
+  # Copia chave pública para os hosts remotos
+  for HOST in "${HOSTS[@]}"; do
+	  ssh-copy-id $USER@$HOST
+  done
+  echo "Teste o ssh."
+#+end_src
+
+#+RESULTS:
+: Teste o ssh.
+
+* Atualizar sistemas
+#+begin_src sh
+  HOSTS=()
+  for HOST in "${HOSTS[@]}"; do
+	  ssh $USER@$HOST "
+	  sudo dnf -y upgrade --refresh
+	  "
+  done
+#+end_src
+* Instalar Ansible e Git
+#+begin_src sh
+  sudo dnf install python39 -y
+  sudo dnf install python39-pip -y
+  sudo dnf install git -y
+
+  pip3 install --upgrade pip
+  pip3 install ansible
+#+end_src
+* Clonar repositório do Kubespray
+#+begin_src sh
+  mkdir repos
+  cd repos
+  git clone https://github.com/kubernetes-sigs/kubespray
+#+end_src

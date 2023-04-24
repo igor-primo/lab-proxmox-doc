@@ -1,0 +1,56 @@
+#+TITLE: Roteiro Kubernetes
+
+#+begin_src sh :results none
+chmod +x *.sh
+#+end_src
+
+* Clonar VMs
+* SSH
+** Cria chaves assimétricas
+#+begin_src sh :tangle create_keys.sh
+  HOSTS=(10.20.1.247 10.20.1.249)
+  # Cria as chaves
+  mkdir ~/.ssh
+  ssh-keygen -q -t rsa -b 4096 -f ~/.ssh/id_rsa -P ""
+  # Copia chave pública para os hosts remotos
+  for HOST in "${HOSTS[@]}"; do
+	  ssh-keyscan -H $HOST >> ~/.ssh/known_hosts
+	  ssh-copy-id $USER@$HOST
+  done
+  echo "Teste o ssh."
+#+end_src
+* Instalar Ansible e Git
+#+begin_src sh :tangle install-deps.sh
+  sudo dnf install python39 -y
+  sudo dnf install python3-pip -y
+  sudo dnf install git -y
+
+  pip3 install --upgrade pip
+#+end_src
+* Atualizar sistemas
+#+begin_src sh :tangle update-systems.sh
+ansible-playbook -i ./inventory.ini update-systems-playbook.yaml --ask-become-pass
+#+end_src
+#+begin_src text :tangle update-systems-playbook.yaml
+- name: Atualiza sistema
+  hosts: server*
+  become: true
+  tasks:
+  - name: Atualiza sistema
+    package:
+      name: '*'
+      state: latest
+#+end_src
+#+begin_src text :tangle inventory.ini
+server1 ansible_host=10.20.1.247 ansible_user=igor
+server2 ansible_host=10.20.1.249 ansible_user=igor
+#+end_src
+* Clonar repositório do Kubespray
+#+begin_src sh :tangle install-kubespray.sh
+  cd ~
+  mkdir repos
+  cd repos
+  git clone https://github.com/kubernetes-sigs/kubespray
+  cd kubespray
+  pip3 install -r requirementes.txt
+#+end_src
