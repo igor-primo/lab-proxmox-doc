@@ -1,0 +1,8 @@
+- name: Remove firewall
+  hosts: server*
+  become: true
+  tasks:
+  - name: Remove firewall
+    shell: |
+      systemctl stop firewalld.service
+      systemctl disable firewalld.service
