@@ -1,13 +1,16 @@
 #+TITLE: Roteiro Kubernetes
 
-Versão 0.3
+Versão 0.4
 
 #+begin_src sh :results none
 chmod +x *.sh
 #+end_src
 
 * Clonar VMs
+A clonagem das VMs é feita de modo manual pelo ProxMox.
 * SSH
+Criaremos chaves de criptografia assimétrica para acessarmos os hosts
+remotamente sem entrarmos uma senha toda vez.
 ** Cria chaves assimétricas
 #+begin_src sh :tangle create_keys.sh
   HOSTS=(10.20.1.247 10.20.1.249)
@@ -22,6 +25,8 @@ chmod +x *.sh
   echo "Teste o ssh."
 #+end_src
 * Instalar Ansible e Git
+Então, instalamos Python, Pip e Git no host de onde partirá a
+instalação do Kubernetes.
 #+begin_src sh :tangle install-deps.sh
   sudo dnf install python39 -y
   sudo dnf install python3-pip -y
@@ -30,12 +35,13 @@ chmod +x *.sh
   pip3 install --upgrade pip
 #+end_src
 * Atualizar sistemas
-Comando para executar o playbook para atualizar o sistema operacional
-dos hosts.
+Agora, se o sistema operacional dos hosts precisa ser atualizado,
+pode-se entrar o seguinte comando para executar o playbook de
+atualização de sistema operacional.
 #+begin_src sh :tangle update-systems.sh
 ansible-playbook -i ./inventory.ini update-systems-playbook.yaml --ask-become-pass
 #+end_src
-Playbook ansible especificando o que se deve fazer, nesse caso,
+Playbook Ansible especificando o que se deve fazer, nesse caso,
 atualizar os softwares presentes nos hosts.
 #+begin_src text :tangle update-systems-playbook.yaml
 - name: Atualiza sistema
@@ -51,6 +57,22 @@ Inventário contendo configuração para acesso aos hosts.
 #+begin_src text :tangle inventory.ini
 server1 ansible_host=10.20.1.247 ansible_user=igor
 server2 ansible_host=10.20.1.249 ansible_user=igor
+#+end_src
+* Desabilitar Firewall
+Por ora desabilitaremos o firewall porque ele impede a execução de uma
+tarefa Ansible.
+#+begin_src sh :tangle remove-firewall.sh
+ansible-playbook -i inventory.ini remove-firewall-playbook.yaml --ask-become-pass
+#+end_src
+#+begin_src yml :tangle remove-firewall-playbook.yaml
+- name: Remove firewall
+  hosts: server*
+  become: true
+  tasks:
+  - name: Remove firewall
+    shell: |
+      systemctl stop firewalld.service
+      systemctl disable firewalld.service 
 #+end_src
 * Clonar repositório do Kubespray e instalar.
 #+begin_src sh :tangle install-kubespray.sh
