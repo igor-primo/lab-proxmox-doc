@@ -43,7 +43,7 @@ ansible-playbook -i ./inventory.ini update-systems-playbook.yaml --ask-become-pa
 #+end_src
 Playbook Ansible especificando o que se deve fazer, nesse caso,
 atualizar os softwares presentes nos hosts.
-#+begin_src text :tangle update-systems-playbook.yaml
+#+begin_src yml :tangle update-systems-playbook.yaml
 - name: Atualiza sistema
   hosts: server*
   become: true
