@@ -1,6 +1,6 @@
 #+TITLE: Roteiro Kubernetes
 
-Versão 0.2
+Versão 0.3
 
 #+begin_src sh :results none
 chmod +x *.sh
@@ -52,7 +52,7 @@ Inventário contendo configuração para acesso aos hosts.
 server1 ansible_host=10.20.1.247 ansible_user=igor
 server2 ansible_host=10.20.1.249 ansible_user=igor
 #+end_src
-* Clonar repositório do Kubespray
+* Clonar repositório do Kubespray e instalar.
 #+begin_src sh :tangle install-kubespray.sh
   cd ~
   mkdir repos
@@ -61,3 +61,5 @@ server2 ansible_host=10.20.1.249 ansible_user=igor
   cd kubespray
   pip3 install -r requirementes.txt
 #+end_src
+* Próximos passos
+Próximos passos são documentados no repositório oficial do [[https://github.com/kubernetes-sigs/kubespray][Kubespray]]:
