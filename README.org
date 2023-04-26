@@ -1,21 +1,18 @@
 #+TITLE: Roteiro Kubernetes
 
-Versão 0.4
-
-#+begin_src sh :results none
-chmod +x *.sh
-#+end_src
+Versão 0.5
 
 * Clonar VMs
-A clonagem das VMs é feita de modo manual pelo ProxMox.
+A clonagem das VMs é feita através do ProxMox manualmente.
 * SSH
-Criaremos chaves de criptografia assimétrica para acessarmos os hosts
-remotamente sem entrarmos uma senha toda vez.
+Criação de chaves assimétricas para acesso ssh sem senha.
 ** Cria chaves assimétricas
 #+begin_src sh :tangle create_keys.sh
-  HOSTS=(10.20.1.247 10.20.1.249)
+  HOSTS=()
   # Cria as chaves
-  mkdir ~/.ssh
+  if [ ! -d ~/.ssh ]; then
+      mkdir ~/.ssh
+  fi
   ssh-keygen -q -t rsa -b 4096 -f ~/.ssh/id_rsa -P ""
   # Copia chave pública para os hosts remotos
   for HOST in "${HOSTS[@]}"; do
@@ -25,21 +22,30 @@ remotamente sem entrarmos uma senha toda vez.
   echo "Teste o ssh."
 #+end_src
 * Instalar Ansible e Git
-Então, instalamos Python, Pip e Git no host de onde partirá a
-instalação do Kubernetes.
-#+begin_src sh :tangle install-deps.sh
+Instalação de python, pip e git no host de onde partirá a instalação
+do kubernetes.
+#+begin_src sh :tangle deps-install.sh
   sudo dnf install python39 -y
   sudo dnf install python3-pip -y
   sudo dnf install git -y
 
   pip3 install --upgrade pip
 #+end_src
+* Clonar repositório do Kubespray e instalar dependências.
+#+begin_src sh :tangle kubespray-install.sh
+  if [ ! -d ~/repos ]; then
+      mkdir ~/repos
+  fi
+  cd ~/repos
+  git clone https://github.com/kubernetes-sigs/kubespray
+  cd kubespray
+  pip3 install -r requirementes.txt
+#+end_src
 * Atualizar sistemas
-Agora, se o sistema operacional dos hosts precisa ser atualizado,
-pode-se entrar o seguinte comando para executar o playbook de
-atualização de sistema operacional.
+Caso não tenha sido feito ou precisa fazer novamente, atualizar os
+sistemas operacionais.
 #+begin_src sh :tangle update-systems.sh
-ansible-playbook -i ./inventory.ini update-systems-playbook.yaml --ask-become-pass
+ansible-playbook -i inventory.ini update-systems-playbook.yaml --ask-become-pass
 #+end_src
 Playbook Ansible especificando o que se deve fazer, nesse caso,
 atualizar os softwares presentes nos hosts.
@@ -55,12 +61,12 @@ atualizar os softwares presentes nos hosts.
 #+end_src
 Inventário contendo configuração para acesso aos hosts.
 #+begin_src text :tangle inventory.ini
-server1 ansible_host=10.20.1.247 ansible_user=igor
-server2 ansible_host=10.20.1.249 ansible_user=igor
+server1 ansible_host=10.20.1.113 ansible_user=igor
+server2 ansible_host=10.20.1.115 ansible_user=igor
 #+end_src
 * Desabilitar Firewall
-Por ora desabilitaremos o firewall porque ele impede a execução de uma
-tarefa Ansible.
+Caso os firewalls não tenham sido desabilitados, desabilitá-los.
+Também temos que ter o login de root via SSH habilitado.
 #+begin_src sh :tangle remove-firewall.sh
 ansible-playbook -i inventory.ini remove-firewall-playbook.yaml --ask-become-pass
 #+end_src
@@ -72,19 +78,34 @@ ansible-playbook -i inventory.ini remove-firewall-playbook.yaml --ask-become-pas
   - name: Remove firewall
     shell: |
       systemctl stop firewalld.service
-      systemctl disable firewalld.service 
-#+end_src
-* Clonar repositório do Kubespray e instalar.
-#+begin_src sh :tangle install-kubespray.sh
-  cd ~
-  mkdir repos
-  cd repos
-  git clone https://github.com/kubernetes-sigs/kubespray
-  cd kubespray
-  pip3 install -r requirementes.txt
+      systemctl disable firewalld.service
+      sed -i 's/.*#PermitRootLogin prohibit-password.*/PermitRootLogin yes/' /etc/ssh/ssd_config
+      systemctl restart sshd
+      localectl set-keymap br
 #+end_src
 * Próximos passos
-Próximos passos são documentados no repositório oficial do [[https://github.com/kubernetes-sigs/kubespray][Kubespray]]:
+Próximos passos são documentados no repositório oficial do [[https://github.com/kubernetes-sigs/kubespray][Kubespray]].
+Mas há algumas ressalvas. A instalação utilizando ambientes virtuais
+do python quando a instalação é feita a partir de uma máquina que será
+um nó do cluster apresenta erros na busca de dependências do python.
+Caso a máquina de partida da instalação deva ser um nó esse passo pode
+ser omitido de qualquer modo.
+
+Os passos a serem utilizados são:
+#+begin_src sh :tangle kubernetes-install.sh
+    cp -rfp inventory/sample inventory/mycluster
+  # IPS é um vetor contendo os hosts do cluster
+    declare -a IPS=()
+    CONFIG_FILE=inventory/mycluster/hosts.yaml python3 contrib/inventory_builder/inventory.py ${IPS[@]}
+  # nesse ponto pode-se revisar e modificar as variáveis em
+  # inventory/mycluster/group_vars/all/all.yml
+  # inventory/mycluster/group_vars/k8s_cluster/k8s_cluster.yml
+
+  # para limpar um cluster velho, executar como root:
+  ansible-playbook -i inventory/mycluster/hosts.yaml --become --become-user=root reset.yml
+  # para fazer uma nova instalação do kubernetes, executar como root:
+  ansible-playbook -i inventory/mycluster/hosts.yaml --become --become-user=root cluster.yml
+#+end_src
 * Problemas encontrados
 ** 04-24-2023, 14:12
 -  Após a instalação com sucesso houve algumas falhas: 1 nó
@@ -101,5 +122,12 @@ Próximos passos são documentados no repositório oficial do [[https://github.c
      inventário. Nessa instalação houveram erros que diziam respeito
      ao nome de módulos de kernel, mas o sumário ao fim da instalação
      não constavam como se a instalação tivesse sido prejudicada por isso.
-	 
-	 
+** 04-25-2023, 12:00
+- Instalação do Kubernetes utilizando ambientes virtuais do python
+  apresenta erros quando a máquina de onde parte a instalação será um
+  nó do cluster. Com a utilização dos ambientes virtuais do python, o
+  interpretador python utilizado é o que está dentro do ambiente
+  virtual. O ansible não consegue encontrar o módulo selinux-python,
+  nesse caso, mas consegue encontrar caso utilizemos o ambiente global
+  do python.
+

@@ -6,3 +6,6 @@
     shell: |
       systemctl stop firewalld.service
       systemctl disable firewalld.service
+      sed -i 's/.*#PermitRootLogin prohibit-password.*/PermitRootLogin yes/' /etc/ssh/ssd_config
+      systemctl restart sshd
+      localectl set-keymap br

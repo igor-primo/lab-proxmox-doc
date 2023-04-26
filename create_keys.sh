@@ -1,6 +1,8 @@
-HOSTS=(10.20.1.247 10.20.1.249)
+HOSTS=()
 # Cria as chaves
-mkdir ~/.ssh
+if [ ! -d ~/.ssh ]; then
+    mkdir ~/.ssh
+fi
 ssh-keygen -q -t rsa -b 4096 -f ~/.ssh/id_rsa -P ""
 # Copia chave pública para os hosts remotos
 for HOST in "${HOSTS[@]}"; do
