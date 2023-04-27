@@ -8,7 +8,7 @@ A clonagem das VMs é feita através do ProxMox manualmente.
 Criação de chaves assimétricas para acesso ssh sem senha.
 ** Cria chaves assimétricas
 #+begin_src sh :tangle create_keys.sh
-  HOSTS=()
+  HOSTS=(xxx.xxx.xxx.xxx xxx.xxx.xxx.xxx)
   # Cria as chaves
   if [ ! -d ~/.ssh ]; then
       mkdir ~/.ssh
