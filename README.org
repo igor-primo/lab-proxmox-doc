@@ -6,9 +6,13 @@ Essa documentação utiliza princípios de programação
 letrada. Consequentemente, alguns snippets que são descritos abaixo então
 contidos em scripts extraídos da documentação. O nome do script
 que contém o snippet respectivo está em um comentário na primeira
-linha do snippet. Também é fornecido alguns argumentos de linha de
-comando como exemplo, caso cabível. Todos os scripts e comandos devem
+linha do snippet. 
+
+Todos os scripts e comandos devem
 ser executados como usuário raiz.
+
+O login de usuário root via SSH deve
+estar habilitado também.
 * Clonar VMs
 A clonagem das VMs é feita através do ProxMox manualmente.
 * SSH
@@ -82,12 +86,11 @@ sistema operacional alvo para as versões mais recentes da distribuição.
 Inventário contendo configuração para acesso aos hosts. Esse arquivo
 deve ser atualizado com os IPs dos hosts do cluster manualmente.
 #+begin_src text :tangle inventory.ini
-server1 ansible_host=10.20.1.113 ansible_user=igor
-server2 ansible_host=10.20.1.115 ansible_user=igor
+server1 ansible_host=10.20.1.113
+server2 ansible_host=10.20.1.115
 #+end_src
-* Desabilitar firewall e habilitar login de root via SSH
+* Desabilitar firewall
 Caso os firewalls não tenham sido desabilitados, desabilitá-los.
-Também temos que ter o login de root via SSH habilitado.
 #+begin_src sh :tangle remove-firewall-enable-root-ssh.sh
   # ./remove-firewall-enable-root-ssh.sh
   (
@@ -104,10 +107,6 @@ Também temos que ter o login de root via SSH habilitado.
     shell: |
       systemctl stop firewalld.service
       systemctl disable firewalld.service
-  - name: Habilita login de root via SSH
-    shell: |
-      sed -i 's/.*#PermitRootLogin prohibit-password.*/PermitRootLogin yes/' /etc/ssh/ssd_config
-      systemctl restart sshd
 #+end_src
 * Próximos passos
 Próximos passos são documentados no repositório oficial do [[https://github.com/kubernetes-sigs/kubespray][Kubespray]].
