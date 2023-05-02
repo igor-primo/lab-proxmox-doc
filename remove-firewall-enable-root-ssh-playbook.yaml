@@ -1,4 +1,4 @@
-- name: Remove firewall
+- name: Remove firewall e habilitar login de root via SSH
   hosts: server*
   become: true
   tasks:
@@ -6,6 +6,7 @@
     shell: |
       systemctl stop firewalld.service
       systemctl disable firewalld.service
+  - name: Habilita login de root via SSH
+    shell: |
       sed -i 's/.*#PermitRootLogin prohibit-password.*/PermitRootLogin yes/' /etc/ssh/ssd_config
       systemctl restart sshd
-      localectl set-keymap br

@@ -98,8 +98,8 @@ um nó do cluster apresenta erros na busca de dependências do python.
 Caso a máquina de partida da instalação deva ser um nó esse passo pode
 ser omitido de qualquer modo.
 
-Os passos a serem utilizados são:
-#+begin_src sh :tangle kubernetes-install.sh
+Os seguintes passos devem ser executados manualmente. São eles:
+#+begin_src sh
   cp -rfp inventory/sample inventory/mycluster
   # IPS é um vetor contendo os IPs dos hosts do cluster
   declare -a IPS=()
