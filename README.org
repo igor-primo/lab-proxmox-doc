@@ -1,56 +1,48 @@
 #+TITLE: Roteiro Kubernetes
 
-Versão 0.5
+Versão 0.6
 * Introdução
-Essa documentação utiliza 
+Essa documentação utiliza princípios de programação
+letrada. Consequentemente, alguns snippets que são descritos abaixo então
+contidos em scripts extraídos da documentação. O nome do script
+que contém o snippet respectivo está em um comentário na primeira
+linha do snippet. Também é fornecido alguns argumentos de linha de
+comando como exemplo, caso cabível.
 * Clonar VMs
 A clonagem das VMs é feita através do ProxMox manualmente.
 * SSH
-Criação de chaves assimétricas para acesso ssh sem senha.
+Criação de chaves assimétricas para acesso SSH sem senha. Esse passo deve ser
+feito manualmente.
 ** Cria chaves assimétricas
-#+NAME: create_keys.sh
-#+begin_src sh :tangle create_keys.sh
-  HOSTS=(xxx.xxx.xxx.xxx xxx.xxx.xxx.xxx)
-  # Cria as chaves
-  if [ ! -d ~/.ssh ]; then
-      mkdir ~/.ssh
-  fi
+#+begin_src sh
+  # A variável HOSTS deve conter os IPs dos hosts da instalação do cluster.
+  # Exemplo: HOSTS=(10.20.1.123 10.20.1.124)
+  HOSTS=()
   ssh-keygen -q -t rsa -b 4096 -f ~/.ssh/id_rsa -P ""
-  # Copia chave pública para os hosts remotos
-  for HOST in "${HOSTS[@]}"; do
-	  ssh-keyscan -H $HOST >> ~/.ssh/known_hosts
-	  ssh-copy-id $USER@$HOST
-  done
-  echo "Teste o ssh."
+  for HOST in "${HOSTS[@]}"; do ssh-copy-id $USER@$HOST; done
 #+end_src
-* Instalar Ansible e Git
-Instalação de python, pip e git no host de onde partirá a instalação
-do kubernetes.
+* Instalar Python
+Instalação de Python e Pip no host de onde partirá a instalação
+do kubernetes. O seguinte snippet instala Python e Pip em sistemas
+baseados em RPM. Caso o sistema ponto de partida não seja baseado em
+RPM, deve-se utilizar os comandos cabíveis.
 #+begin_src sh :tangle deps-install.sh
+  # ./deps-install.sh
   sudo dnf install python39 -y
   sudo dnf install python3-pip -y
-  sudo dnf install git -y
-
   pip3 install --upgrade pip
-#+end_src
-* Clonar repositório do Kubespray e instalar dependências.
-#+begin_src sh :tangle kubespray-install.sh
-  if [ ! -d ~/repos ]; then
-      mkdir ~/repos
-  fi
-  cd ~/repos
-  git clone https://github.com/kubernetes-sigs/kubespray
-  cd kubespray
-  pip3 install -r requirementes.txt
 #+end_src
 * Atualizar sistemas
 Caso não tenha sido feito ou precisa fazer novamente, atualizar os
-sistemas operacionais.
+sistemas operacionais. Esse script depende da existência dos arquivos
+"inventory.ini" e "update-systems-playbook.yaml" que são providos
+nesse repositório.
 #+begin_src sh :tangle update-systems.sh
-ansible-playbook -i inventory.ini update-systems-playbook.yaml --ask-become-pass
+  # ./update-systems.sh
+  ansible-playbook -i inventory.ini update-systems-playbook.yaml --ask-become-pass
 #+end_src
-Playbook Ansible especificando o que se deve fazer, nesse caso,
-atualizar os softwares presentes nos hosts.
+Playbook Ansible que especifica a tarefa para atualizar os pacotes do
+sistema operacional alvo para as versões mais recentes da distribuição.
 #+begin_src yml :tangle update-systems-playbook.yaml
 - name: Atualiza sistema
   hosts: server*
@@ -61,19 +53,20 @@ atualizar os softwares presentes nos hosts.
       name: '*'
       state: latest
 #+end_src
-Inventário contendo configuração para acesso aos hosts.
+Inventário contendo configuração para acesso aos hosts. Esse arquivo
+deve ser atualizado com os IPs dos hosts do cluster manualmente.
 #+begin_src text :tangle inventory.ini
 server1 ansible_host=10.20.1.113 ansible_user=igor
 server2 ansible_host=10.20.1.115 ansible_user=igor
 #+end_src
-* Desabilitar Firewall
+* Desabilitar firewall e habilitar login de root via SSH
 Caso os firewalls não tenham sido desabilitados, desabilitá-los.
 Também temos que ter o login de root via SSH habilitado.
-#+begin_src sh :tangle remove-firewall.sh
-ansible-playbook -i inventory.ini remove-firewall-playbook.yaml --ask-become-pass
+#+begin_src sh :tangle remove-firewall-enable-root-ssh.sh
+ansible-playbook -i inventory.ini remove-firewall-enable-root-ssh-playbook.yaml --ask-become-pass
 #+end_src
-#+begin_src yml :tangle remove-firewall-playbook.yaml
-- name: Remove firewall
+#+begin_src yml :tangle remove-firewall-enable-root-ssh-playbook.yaml
+- name: Remove firewall e habilitar login de root via SSH
   hosts: server*
   become: true
   tasks:
@@ -81,9 +74,21 @@ ansible-playbook -i inventory.ini remove-firewall-playbook.yaml --ask-become-pas
     shell: |
       systemctl stop firewalld.service
       systemctl disable firewalld.service
+  - name: Habilita login de root via SSH
+    shell: |
       sed -i 's/.*#PermitRootLogin prohibit-password.*/PermitRootLogin yes/' /etc/ssh/ssd_config
       systemctl restart sshd
-      localectl set-keymap br
+#+end_src
+* Clonar repositório do Kubespray e instalar dependências.
+#+begin_src sh :tangle kubespray-install.sh
+  # ./kubespray-install.sh
+  if [ ! -d /tmp/repos ]; then
+	  mkdir /tmp/repos
+  fi
+  cd /tmp/repos
+  git clone https://github.com/kubernetes-sigs/kubespray
+  cd kubespray
+  pip3 install -r requirementes.txt
 #+end_src
 * Próximos passos
 Próximos passos são documentados no repositório oficial do [[https://github.com/kubernetes-sigs/kubespray][Kubespray]].
@@ -95,10 +100,10 @@ ser omitido de qualquer modo.
 
 Os passos a serem utilizados são:
 #+begin_src sh :tangle kubernetes-install.sh
-    cp -rfp inventory/sample inventory/mycluster
-  # IPS é um vetor contendo os hosts do cluster
-    declare -a IPS=()
-    CONFIG_FILE=inventory/mycluster/hosts.yaml python3 contrib/inventory_builder/inventory.py ${IPS[@]}
+  cp -rfp inventory/sample inventory/mycluster
+  # IPS é um vetor contendo os IPs dos hosts do cluster
+  declare -a IPS=()
+  CONFIG_FILE=inventory/mycluster/hosts.yaml python3 contrib/inventory_builder/inventory.py ${IPS[@]}
   # nesse ponto pode-se revisar e modificar as variáveis em
   # inventory/mycluster/group_vars/all/all.yml
   # inventory/mycluster/group_vars/k8s_cluster/k8s_cluster.yml
