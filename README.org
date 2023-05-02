@@ -7,7 +7,8 @@ letrada. Consequentemente, alguns snippets que são descritos abaixo então
 contidos em scripts extraídos da documentação. O nome do script
 que contém o snippet respectivo está em um comentário na primeira
 linha do snippet. Também é fornecido alguns argumentos de linha de
-comando como exemplo, caso cabível.
+comando como exemplo, caso cabível. Todos os scripts e comandos devem
+ser executados como usuário raiz.
 * Clonar VMs
 A clonagem das VMs é feita através do ProxMox manualmente.
 * SSH
@@ -28,10 +29,32 @@ baseados em RPM. Caso o sistema ponto de partida não seja baseado em
 RPM, deve-se utilizar os comandos cabíveis.
 #+begin_src sh :tangle deps-install.sh
   # ./deps-install.sh
-  sudo dnf install python39 -y
-  sudo dnf install python3-pip -y
+  sudo dnf install python39 python3-pip -y
   pip3 install --upgrade pip
 #+end_src
+* Clonar repositório do Kubespray e instalar dependências.
+#+begin_src sh :tangle kubespray-install.sh
+  # ./kubespray-install.sh
+  if [ ! -d /tmp/repos ]; then
+	  mkdir /tmp/repos
+  fi
+
+  cd /tmp/repos
+
+  if [ ! -d ./kubespray ]; then
+	  git clone https://github.com/kubernetes-sigs/kubespray
+  fi
+
+  pip install virtualenv
+
+  VENVDIR=kubespray-venv
+  KUBESPRAYDIR=kubespray
+  ANSIBLE_VERSION=2.12
+  virtualenv  --python=$(which python3) $VENVDIR
+  source $VENVDIR/bin/activate
+  cd $KUBESPRAYDIR
+  pip install -U -r requirements-$ANSIBLE_VERSION.txt
+  #+end_src
 * Atualizar sistemas
 Caso não tenha sido feito ou precisa fazer novamente, atualizar os
 sistemas operacionais. Esse script depende da existência dos arquivos
@@ -39,7 +62,10 @@ sistemas operacionais. Esse script depende da existência dos arquivos
 nesse repositório.
 #+begin_src sh :tangle update-systems.sh
   # ./update-systems.sh
-  ansible-playbook -i inventory.ini update-systems-playbook.yaml --ask-become-pass
+  (
+	  source /tmp/repos/kubespray-venv/bin/activate
+	  ansible-playbook -i inventory.ini update-systems-playbook.yaml --ask-become-pass
+  )
 #+end_src
 Playbook Ansible que especifica a tarefa para atualizar os pacotes do
 sistema operacional alvo para as versões mais recentes da distribuição.
@@ -63,7 +89,11 @@ server2 ansible_host=10.20.1.115 ansible_user=igor
 Caso os firewalls não tenham sido desabilitados, desabilitá-los.
 Também temos que ter o login de root via SSH habilitado.
 #+begin_src sh :tangle remove-firewall-enable-root-ssh.sh
-ansible-playbook -i inventory.ini remove-firewall-enable-root-ssh-playbook.yaml --ask-become-pass
+  # ./remove-firewall-enable-root-ssh.sh
+  (
+	  source /tmp/repos/kubespray-venv/bin/activate
+	  ansible-playbook -i inventory.ini remove-firewall-enable-root-ssh-playbook.yaml --ask-become-pass
+  )
 #+end_src
 #+begin_src yml :tangle remove-firewall-enable-root-ssh-playbook.yaml
 - name: Remove firewall e habilitar login de root via SSH
@@ -78,17 +108,6 @@ ansible-playbook -i inventory.ini remove-firewall-enable-root-ssh-playbook.yaml 
     shell: |
       sed -i 's/.*#PermitRootLogin prohibit-password.*/PermitRootLogin yes/' /etc/ssh/ssd_config
       systemctl restart sshd
-#+end_src
-* Clonar repositório do Kubespray e instalar dependências.
-#+begin_src sh :tangle kubespray-install.sh
-  # ./kubespray-install.sh
-  if [ ! -d /tmp/repos ]; then
-	  mkdir /tmp/repos
-  fi
-  cd /tmp/repos
-  git clone https://github.com/kubernetes-sigs/kubespray
-  cd kubespray
-  pip3 install -r requirementes.txt
 #+end_src
 * Próximos passos
 Próximos passos são documentados no repositório oficial do [[https://github.com/kubernetes-sigs/kubespray][Kubespray]].
@@ -107,6 +126,9 @@ Os seguintes passos devem ser executados manualmente. São eles:
   # nesse ponto pode-se revisar e modificar as variáveis em
   # inventory/mycluster/group_vars/all/all.yml
   # inventory/mycluster/group_vars/k8s_cluster/k8s_cluster.yml
+
+  sudo su
+  source ../kubespray-venv/bin/activate
 
   # para limpar um cluster velho, executar como root:
   ansible-playbook -i inventory/mycluster/hosts.yaml --become --become-user=root reset.yml
