@@ -136,6 +136,37 @@ Os seguintes passos devem ser executados manualmente. São eles:
   # para fazer uma nova instalação do kubernetes, executar como root:
   ansible-playbook -i inventory/mycluster/hosts.yaml --become --become-user=root cluster.yml
 #+end_src
+* Instalação do Wordpress + MySQL
+Os passos utilizados para instalação do Wordpress e MySQL consistem
+na aplicação de um [[https://kubernetes.io/docs/concepts/workloads/controllers/deployment/][deployment]] e de um [[https://kubernetes.io/docs/concepts/services-networking/service/][service]] para cada
+componente. Cada deployment possuirá também uma configuração para
+utilizar um servidor NFS como armazenamento persistente, com o intúito
+de preservar a configuração das aplicações e e dos dados do banco de dados entre
+possíveis deployments (ex.: um nó é desligo ou cai).
+Também possuirá uma configuração que especifica uma [[https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/][toleration]], i.e.,
+um espaço de tempo que um container permanecerá atrelado a um nó
+enquanto uma taint for verificada, por exemplo, quando a taint
+not-ready estiver verificada quando o nó estiver fora do ar.
+
+** Instalação do servidor NFS
+Antes de tudo, executamos o seguinte roteiro para criar um servidor
+NFS. No host onde o servidor NFS será hospedado, executar, como raiz:
+#+begin_src
+  # como raiz
+  dnf install nfs-utils -y
+  mkdir /var/nfs/general -p
+  touch /etc/exports
+  # colocar IPs dos workers no vetor HOSTS
+  # exemplo HOSTS=(10.20.1.113 10.20.1.118)
+  export HOSTS=() # fazemos export para podermos utilizar essa variável em outros momentos, caso cabível
+  for i in "${HOSTS}"; do echo "/var/nfs/general $i(rw,no_subtree_check,no_root_squash)" >> /etc/exports;done
+  systemctl enable --now nfs-server
+  exportfs -ra
+
+  # os hosts clientes também precisam do pacote nfs-utils
+  # então instalamos ele
+  for i in "${HOSTS}"; do ssh $USER@$i "dnf install nfs-utils -y";done
+#+end_src
 * Problemas encontrados
 ** 04-24-2023, 14:12
 -  Após a instalação com sucesso houve algumas falhas: 1 nó
