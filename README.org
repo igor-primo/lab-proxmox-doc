@@ -168,7 +168,11 @@ NFS. No host onde o servidor NFS será hospedado, executar, como raiz:
   for i in "${HOSTS}"; do ssh $USER@$i "dnf install nfs-utils -y";done
 #+end_src
 ** Aplicação do Deployment do MySQL
-#+begin_src text
+Em um dos master nodes (control_planes) executar os seguintes comandos:
+#+begin_src sh
+  kubectl apply -f mysql-dep.yml
+#+end_src
+#+begin_src txt :tangle mysql-dep.yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -197,8 +201,8 @@ spec:
       volumes:
       - name: nfs-volume
         nfs:
-          server: 10.20.1.113
-          path: /var/nfs/general/mysql
+          server: 10.20.1.111
+          path: /var/nfs/general/mysql-igor
           readOnly: no
       tolerations:
       - effect: NoExecute
@@ -210,8 +214,17 @@ spec:
         operator: Exists
         tolerationSeconds: 30
 #+end_src
+O seguintes comandos podem ser utilizados para resgatar informações básicas
+sobre o deployment e sobre o pod criado.
+#+begin_src sh
+  kubectl get deployment -o wide
+  kubectl get pod -o wide
+#+end_src
 ** Aplicação do Service do MySQL
-#+begin_src text
+#+begin_src sh
+  kubectl apply -f mysql-serv.yml
+#+end_src
+#+begin_src txt :tangle mysql-serv.yml
 apiVersion: v1
 kind: Service
 metadata:
@@ -224,8 +237,16 @@ spec:
       port: 3306
       targetPort: 3306
 #+end_src
+O seguintes comandos podem ser utilizados para resgatar informações básicas
+sobre o Service criado.
+#+begin_src sh
+  kubectl get svc -o wide
+#+end_src
 ** Aplicação do Deployment do Wordpress
-#+begin_src text
+#+begin_src sh
+  kubectl apply -f wordpress-dep.yml
+#+end_src
+#+begin_src txt :tangle wordpress-dep.yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -260,8 +281,8 @@ spec:
       volumes:
       - name: nfs-volume
         nfs:
-          server: 10.20.1.113
-          path: /var/nfs/general/wordpress
+          server: 10.20.1.111
+          path: /var/nfs/general/wordpress-igor
           readOnly: no
       tolerations:
       - effect: NoExecute
@@ -274,7 +295,10 @@ spec:
         tolerationSeconds: 30
 #+end_src
 ** Aplicação do Service do Wordpress
-#+begin_src text
+#+begin_src sh
+  kubectl apply -f wordpress-serv.yml
+#+end_src
+#+begin_src txt :tangle wordpress-serv.yml
 apiVersion: v1
 kind: Service
 metadata:
@@ -288,6 +312,13 @@ spec:
       port: 80
       targetPort: 80
       nodePort: 30036 
+#+end_src
+Os seguintes comandos podem ser utilizados para fazer troubleshooting
+nos respectivos componentes Kubernetes:
+#+begin_src sh
+  kubectl describe deployment
+  kubectl describe pod
+  kubectl describe service
 #+end_src
 * Problemas encontrados
 ** 04-24-2023, 14:12

@@ -32,8 +32,8 @@ spec:
       volumes:
       - name: nfs-volume
         nfs:
-          server: 10.20.1.113
-          path: /var/nfs/general/wordpress
+          server: 10.20.1.111
+          path: /var/nfs/general/wordpress-igor
           readOnly: no
       tolerations:
       - effect: NoExecute
