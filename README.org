@@ -321,6 +321,7 @@ nos respectivos componentes Kubernetes:
   kubectl describe deployment
   kubectl describe pod
   kubectl describe service
+  kubectl logs <POD_NAME>
 #+end_src
 * Problemas encontrados
 ** 04-24-2023, 14:12
