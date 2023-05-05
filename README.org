@@ -123,7 +123,6 @@ Os seguintes passos devem ser executados manualmente. São eles:
   # IPS é um vetor contendo os IPs dos hosts do cluster
   declare -a IPS=()
 
-  sudo su
   source ../kubespray-venv/bin/activate
 
   CONFIG_FILE=inventory/mycluster/hosts.yaml python3 contrib/inventory_builder/inventory.py ${IPS[@]}
@@ -333,6 +332,7 @@ A partir de control_plane logar no container:
   exit
   exit
 #+end_src
+* Instalação do Gitlab
 * Problemas encontrados
 ** 04-24-2023, 14:12
 -  Após a instalação com sucesso houve algumas falhas: 1 nó
