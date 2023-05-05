@@ -1,6 +1,5 @@
 #+TITLE: Roteiro Kubernetes
 
-Versão 0.6
 * Introdução
 Essa documentação utiliza princípios de programação
 letrada. Consequentemente, alguns snippets que são descritos abaixo então
