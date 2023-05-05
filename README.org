@@ -168,7 +168,7 @@ NFS. No host onde o servidor NFS será hospedado, executar, como raiz:
   for i in "${HOSTS}"; do ssh $USER@$i "dnf install nfs-utils -y";done
 #+end_src
 ** Aplicação do Deployment do MySQL
-#+include: "./mysql-dep.yml" src yaml
+#+include: "./mysql-dep.yml" src text
 * Problemas encontrados
 ** 04-24-2023, 14:12
 -  Após a instalação com sucesso houve algumas falhas: 1 nó
