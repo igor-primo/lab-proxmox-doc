@@ -151,22 +151,36 @@ not-ready estiver verificada quando o nó estiver fora do ar.
 Antes de tudo, executamos o seguinte roteiro para criar um servidor
 NFS. No host onde o servidor NFS será hospedado, executar, como raiz:
 #+begin_src
-  # como raiz
+  # Como raiz
   dnf install nfs-utils -y
   mkdir /var/nfs/general -p
   touch /etc/exports
-  # colocar IPs dos workers no vetor HOSTS
-  # exemplo HOSTS=(10.20.1.113 10.20.1.118)
-  export HOSTS=() # fazemos export para podermos utilizar essa variável em outros momentos, caso cabível
+  
+  # Colocar IPs dos workers no vetor HOSTS
+  # Exemplo: HOSTS=(10.20.1.113 10.20.1.118)
+  export HOSTS=()
+  # Fazemos export para podermos utilizar essa variável em outros momentos, caso cabível
   for i in "${HOSTS[@]}"; do echo "/var/nfs/general $i(rw,no_subtree_check,no_root_squash)" >> /etc/exports;done
 
   systemctl enable nfs-server
   systemctl start nfs-server
+
+  # Esse comando deve ser executado toda vez que o arquivo /etc/exports
+  # for modificado.
   exportfs -ra
 
-  # os hosts clientes também precisam do pacote nfs-utils
-  # então instalamos ele
+  # Os hosts clientes também precisam do pacote nfs-utils, caso não estejam instalados
+  # então instalamos ele:
   for i in "${HOSTS}"; do ssh $USER@$i "dnf install nfs-utils -y";done
+#+end_src
+Caso o servidor NFS já exista, deve-se executar apenas os comandos:
+#+begin_src sh
+  # Modificar manualemente o arquivo /etc/exports
+  # ou então executar o seguinte snippet
+  HOSTS=()
+  for i in "${HOSTS[@]}"; do echo "/var/nfs/general $i(rw,no_subtree_check,no_root_squash)" >> /etc/exports;done
+
+  exportfs -ra
 #+end_src
 ** Aplicação do Deployment do MySQL
 Em um dos master nodes (control_planes) executar os seguintes comandos:
