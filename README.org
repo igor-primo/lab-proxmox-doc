@@ -181,6 +181,15 @@ Caso o servidor NFS já exista, deve-se executar apenas os comandos:
 
   exportfs -ra
 #+end_src
+Deve-se criar pastas específicas de cada aplicação no diretório
+/var/nfs/general/
+(ex.: /var/nfs/general/mysql-igor)
+e deixá-las com permissão 777 para evitar erros de permissão e também
+com usuário e grupo nobody.
+#+begin_src sh
+  chmod 777 -R /var/nfs/general/<DIR>
+  chown nobody:nobody -R /var/nfs/general/<DIR>
+#+end_src
 ** Aplicação do Deployment do MySQL
 Em um dos master nodes (control_planes) executar os seguintes comandos:
 #+begin_src sh
@@ -229,7 +238,7 @@ spec:
         tolerationSeconds: 30
 #+end_src
 O seguintes comandos podem ser utilizados para resgatar informações básicas
-sobre o deployment e sobre o pod criado.
+Sobre o deployment e sobre o pod criado.
 #+begin_src sh
   kubectl get deployment -o wide
   kubectl get pod -o wide
