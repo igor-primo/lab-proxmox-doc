@@ -159,7 +159,7 @@ NFS. No host onde o servidor NFS será hospedado, executar, como raiz:
   # colocar IPs dos workers no vetor HOSTS
   # exemplo HOSTS=(10.20.1.113 10.20.1.118)
   export HOSTS=() # fazemos export para podermos utilizar essa variável em outros momentos, caso cabível
-  for i in "${HOSTS}"; do echo "/var/nfs/general $i(rw,no_subtree_check,no_root_squash)" >> /etc/exports;done
+  for i in "${HOSTS[@]}"; do echo "/var/nfs/general $i(rw,no_subtree_check,no_root_squash)" >> /etc/exports;done
   systemctl enable --now nfs-server
   exportfs -ra
 
@@ -167,6 +167,8 @@ NFS. No host onde o servidor NFS será hospedado, executar, como raiz:
   # então instalamos ele
   for i in "${HOSTS}"; do ssh $USER@$i "dnf install nfs-utils -y";done
 #+end_src
+** Aplicação do Deployment do MySQL
+#+include: "./mysql-dep.yml" src yaml
 * Problemas encontrados
 ** 04-24-2023, 14:12
 -  Após a instalação com sucesso houve algumas falhas: 1 nó
