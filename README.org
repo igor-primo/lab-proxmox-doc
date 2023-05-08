@@ -36,27 +36,47 @@ RPM, deve-se utilizar os comandos cabíveis.
   pip3 install --upgrade pip
 #+end_src
 * Clonar repositório do Kubespray e instalar dependências.
+Caso a instalação esteja partindo de uma máquina exterior ao cluster,
+pode-se utilizar o seguinte script; mas se a instalação estiver
+partindo de um dos nós do cluster, deve-se omitir a instalação do do
+ambiente virtual Python.
+
+O script abaixo instala as dependências Python do Kubespray no
+diretório /tmp/repos/kubespray-venv. Segundo a [[https://docs.python.org/3/library/venv.html][documentação]] do Python,
+esses ambientes virtuais servem para resolver problemas de
+incompatibilidade entre versões de um mesmo software requerido em
+várias versões. Em alguns dos scripts/snippets que seguem,
+utilizaremos essas dependências por conveniência.
 #+begin_src sh :tangle kubespray-install.sh
-  # ./kubespray-install.sh
-  if [ ! -d /tmp/repos ]; then
-	  mkdir /tmp/repos
-  fi
+	# ./kubespray-install.sh
+	if [ ! -d /tmp/repos ]; then
+		mkdir /tmp/repos
+	fi
 
-  cd /tmp/repos
+	cd /tmp/repos
 
-  if [ ! -d ./kubespray ]; then
-	  git clone https://github.com/kubernetes-sigs/kubespray
-  fi
+	if [ ! -d ./kubespray ]; then
+		git clone https://github.com/kubernetes-sigs/kubespray
+	fi
 
-  pip install virtualenv
+	EXTERNAL=""
+	read -p "A instalação do cluster parte de uma máquina externa ao cluster? (y/N)" EXTERNAL
+	if [ $EXTERNAL = "y" ]; then
+	  pip install virtualenv
 
-  VENVDIR=kubespray-venv
-  KUBESPRAYDIR=kubespray
-  ANSIBLE_VERSION=2.12
-  virtualenv  --python=$(which python3) $VENVDIR
-  source $VENVDIR/bin/activate
-  cd $KUBESPRAYDIR
-  pip install -U -r requirements-$ANSIBLE_VERSION.txt
+	  VENVDIR=kubespray-venv
+	  KUBESPRAYDIR=kubespray
+	  ANSIBLE_VERSION=2.12
+	  virtualenv  --python=$(which python3) $VENVDIR
+	  source $VENVDIR/bin/activate
+	  cd $KUBESPRAYDIR
+	  pip install -U -r requirements-$ANSIBLE_VERSION.txt
+	elif [ $EXTERNAL ="N" ]
+	  cd kubespray
+	  pip install -U -r requirements.txt
+	else
+	  echo "Entrada inválida"
+	fi
   #+end_src
 * Atualizar sistemas
 Caso não tenha sido feito ou precisa fazer novamente, atualizar os
@@ -67,7 +87,7 @@ nesse repositório.
   # ./update-systems.sh
   (
 	  source /tmp/repos/kubespray-venv/bin/activate
-	  ansible-playbook -i inventory.ini update-systems-playbook.yaml --ask-become-pass
+	  ansible-playbook -i inventory.ini update-systems-playbook.yaml --become --become-user=root
   )
 #+end_src
 Playbook Ansible que especifica a tarefa para atualizar os pacotes do
@@ -90,14 +110,14 @@ server2 ansible_host=10.20.1.115
 #+end_src
 * Desabilitar firewall
 Caso os firewalls não tenham sido desabilitados, desabilitá-los.
-#+begin_src sh :tangle remove-firewall-enable-root-ssh.sh
-  # ./remove-firewall-enable-root-ssh.sh
+#+begin_src sh :tangle remove-firewall.sh
+  # ./remove-firewall.sh
   (
 	  source /tmp/repos/kubespray-venv/bin/activate
-	  ansible-playbook -i inventory.ini remove-firewall-enable-root-ssh-playbook.yaml --ask-become-pass
+	  ansible-playbook -i inventory.ini remove-firewall-playbook.yaml --become --become-user=root
   )
 #+end_src
-#+begin_src yml :tangle remove-firewall-enable-root-ssh-playbook.yaml
+#+begin_src yml :tangle remove-firewall-playbook.yaml
 - name: Remove firewall e habilitar login de root via SSH
   hosts: server*
   become: true
@@ -115,23 +135,26 @@ um nó do cluster apresenta erros na busca de dependências do python.
 Caso a máquina de partida da instalação deva ser um nó esse passo pode
 ser omitido de qualquer modo.
 
-Os seguintes passos devem ser executados manualmente. São eles:
+Os seguintes passos, que são os mais importantes, devem ser executados manualmente:
 #+begin_src sh
-  # Na raíz do projeto kubespray
+  # Na raíz do projeto kubespray.
   cp -rfp inventory/sample inventory/mycluster
-  # IPS é um vetor contendo os IPs dos hosts do cluster
+  # IPS é um vetor contendo os IPs dos hosts do cluster.
   declare -a IPS=()
 
+  # A seguinte linha deve ser executada somente se a máquina de onde parte
+  # a instalação for externa ao cluster.
   source ../kubespray-venv/bin/activate
 
+  # Esse script gera o inventário automaticamente com configuração padrão.
   CONFIG_FILE=inventory/mycluster/hosts.yaml python3 contrib/inventory_builder/inventory.py ${IPS[@]}
-  # nesse ponto pode-se revisar e modificar as variáveis em
-  # inventory/mycluster/group_vars/all/all.yml
-  # inventory/mycluster/group_vars/k8s_cluster/k8s_cluster.yml
+  # Nesse ponto pode-se revisar e modificar as variáveis em
+  # inventory/mycluster/group_vars/all/all.yml e
+  # inventory/mycluster/group_vars/k8s_cluster/k8s_cluster.yml.
 
-  # para limpar um cluster velho, executar como root:
+  # Para limpar um cluster velho, executar como root:
   ansible-playbook -i inventory/mycluster/hosts.yaml --become --become-user=root reset.yml
-  # para fazer uma nova instalação do kubernetes, executar como root:
+  # Para fazer uma nova instalação do kubernetes, executar como root:
   ansible-playbook -i inventory/mycluster/hosts.yaml --become --become-user=root cluster.yml
 #+end_src
 * Instalação do Wordpress + MySQL
@@ -149,16 +172,16 @@ not-ready estiver verificada quando o nó estiver fora do ar.
 ** Instalação do servidor NFS
 Antes de tudo, executamos o seguinte roteiro para criar um servidor
 NFS. No host onde o servidor NFS será hospedado, executar, como raiz:
-#+begin_src
-  # Como raiz
+#+begin_src sh
+  # Como raiz.
   dnf install nfs-utils -y
   mkdir /var/nfs/general -p
   touch /etc/exports
   
-  # Colocar IPs dos workers no vetor HOSTS
+  # Colocar IPs dos workers no vetor HOSTS.
   # Exemplo: HOSTS=(10.20.1.113 10.20.1.118)
   export HOSTS=()
-  # Fazemos export para podermos utilizar essa variável em outros momentos, caso cabível
+  # Fazemos export para podermos utilizar essa variável em outros momentos, caso cabível.
   for i in "${HOSTS[@]}"; do echo "/var/nfs/general $i(rw,no_subtree_check,no_root_squash)" >> /etc/exports;done
 
   systemctl enable nfs-server
@@ -172,16 +195,19 @@ NFS. No host onde o servidor NFS será hospedado, executar, como raiz:
   # então instalamos ele:
   for i in "${HOSTS}"; do ssh $USER@$i "dnf install nfs-utils -y";done
 #+end_src
-Caso o servidor NFS já exista, deve-se executar apenas os comandos:
+Caso o servidor NFS já exista, deve-se executar apenas os seguintes comandos no servidor:
 #+begin_src sh
   # Modificar manualemente o arquivo /etc/exports
-  # ou então executar o seguinte snippet
+  # ou então executar o seguinte snippet.
   HOSTS=()
   for i in "${HOSTS[@]}"; do echo "/var/nfs/general $i(rw,no_subtree_check,no_root_squash)" >> /etc/exports;done
 
   exportfs -ra
 #+end_src
-Deve-se criar pastas específicas de cada aplicação no diretório
+Os comandos acima especificam o diretório a ser montado nos clientes,
+os IPS dos clientes e configurações por IP.
+
+Deve-se também criar pastas específicas de cada aplicação no diretório
 /var/nfs/general/
 (ex.: /var/nfs/general/mysql-igor)
 e deixá-las com permissão 777 para evitar erros de permissão e também
