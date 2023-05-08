@@ -380,7 +380,7 @@ A partir de control_plane logar no container:
   exit
   exit
 #+end_src
-* Instalação do Gitlab
+* Instalação do Gitlabc
 * Problemas encontrados
 ** 04-24-2023, 14:12
 -  Após a instalação com sucesso houve algumas falhas: 1 nó
