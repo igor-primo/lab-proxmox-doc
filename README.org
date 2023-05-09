@@ -380,7 +380,16 @@ A partir de control_plane logar no container:
   exit
   exit
 #+end_src
-* Instalação do Gitlabc
+* Instalação do Gitlab
+** Instalação do gerenciador de pacotes Helm
+** Instalação do provisionador nfs-subdir-external
+#+begin_src sh
+  helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/
+  helm install nfs-subdir-external-provisioner nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
+    --set nfs.server=x.x.x.x \
+    --set nfs.path=/exported/path
+#+end_src
+A [[https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/blob/master/charts/nfs-subdir-external-provisioner/README.md][fonte]] é essa. Outra [[https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner][fonte]], e mais [[https://faun.pub/deploy-gitlab-in-on-premises-kubernetes-1833ef599f80][outra]].
 * Problemas encontrados
 ** 04-24-2023, 14:12
 -  Após a instalação com sucesso houve algumas falhas: 1 nó
