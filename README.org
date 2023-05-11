@@ -193,7 +193,7 @@ NFS. No host onde o servidor NFS será hospedado, executar, como raiz:
 
   # Os hosts clientes também precisam do pacote nfs-utils, caso não estejam instalados
   # então instalamos ele:
-  for i in "${HOSTS}"; do ssh $USER@$i "dnf install nfs-utils -y";done
+  for i in "${HOSTS[@]}"; do ssh $USER@$i "dnf install nfs-utils -y";done
 #+end_src
 Caso o servidor NFS já exista, deve-se executar apenas os seguintes comandos no servidor:
 #+begin_src sh
