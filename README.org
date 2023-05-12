@@ -404,15 +404,95 @@ A partir de control_plane logar no container:
   exit
 #+end_src
 * Instalação do Gitlab
-** Instalação do gerenciador de pacotes Helm
-** Instalação do provisionador nfs-subdir-external
-#+begin_src sh
-  helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/
-  helm install nfs-subdir-external-provisioner nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
-    --set nfs.server=x.x.x.x \
-    --set nfs.path=/exported/path
+** Aplicação do Deployment para o Gitlab
+Revise o arquivo de configuração do deployment para o Gitlab e edite
+os campos necessários, como os caminhos nos volumes "gitlab-data",
+"gitlab-logs" e "gitlab-config" para servir a sua configuração. Vale
+ressaltar que os caminhos para esses volumes devem ser diferentes.
+#+begin_src txt :tangle gitlab/gitlab-dep.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitlab
+  template:
+    metadata:
+      labels:
+        app: gitlab
+    spec:
+      containers:
+      - name: gitlab
+        image: gitlab/gitlab-ce:latest
+        env:
+        - name: GITLAB_OMNIBUS_CONFIG
+          value: |
+            external_url 'http://localhost'
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: gitlab-data
+          mountPath: /var/opt/gitlab
+        - name: gitlab-logs
+          mountPath: /var/log/gitlab
+        - name: gitlab-config
+          mountPath: /etc/gitlab
+      volumes:
+      - name: gitlab-data
+        nfs:
+          server: 10.20.9.111
+          path: /var/nfs/general/gitlab-igor/data
+          readOnly: no
+      - name: gitlab-logs
+        nfs:
+          server: 10.20.9.111
+          path: /var/nfs/general/gitlab-igor/logs
+          readOnly: no
+      - name: gitlab-config
+        nfs:
+          server: 10.20.9.111
+          path: /var/nfs/general/gitlab-igor/config
+          readOnly: no
+      tolerations:
+      - effect: NoExecute
+        key: node.kubernetes.io/not-ready
+        operator: Exists
+        tolerationSeconds: 30
+      - effect: NoExecute
+        key: node.kubernetes.io/unreachable
+        operator: Exists
+        tolerationSeconds: 30
 #+end_src
-A [[https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/blob/master/charts/nfs-subdir-external-provisioner/README.md][fonte]] é essa. Outra [[https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner][fonte]], e mais [[https://faun.pub/deploy-gitlab-in-on-premises-kubernetes-1833ef599f80][outra]].
+Execute o seguinte comando para aplicar a configuração do deployment:
+#+begin_src sh
+  kubectl apply -f gitlab-dep.yml
+#+end_src
+** Aplicação do Service para o Gitlab
+Revise o arquivo de configuração para o serviço do Gitlab e edite o
+que achar necessário.
+#+begin_src txt :tangle gitlab/gitlab-serv.yml
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitlab-service
+spec:
+  selector:
+    app: gitlab
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 30036 
+#+end_src
+Execute o seguinte comando para aplicar a configuração:
+#+begin_src sh
+  kubectl apply -f gitlab-serv.yml
+#+end_src
+* TODO Instalação de um Runner no Gitlab
 * Problemas encontrados
 ** 04-24-2023, 14:12
 -  Após a instalação com sucesso houve algumas falhas: 1 nó

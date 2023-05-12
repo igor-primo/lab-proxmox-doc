@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitlab
+  template:
+    metadata:
+      labels:
+        app: gitlab
+    spec:
+      containers:
+      - name: gitlab
+        image: gitlab/gitlab-ce:latest
+        env:
+        - name: GITLAB_OMNIBUS_CONFIG
+          value: |
+            external_url 'http://localhost'
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: gitlab-data
+          mountPath: /var/opt/gitlab
+        - name: gitlab-logs
+          mountPath: /var/log/gitlab
+        - name: gitlab-config
+          mountPath: /etc/gitlab
+      volumes:
+      - name: gitlab-data
+        nfs:
+          server: 10.20.9.111
+          path: /var/nfs/general/gitlab-igor/data
+          readOnly: no
+      - name: gitlab-logs
+        nfs:
+          server: 10.20.9.111
+          path: /var/nfs/general/gitlab-igor/logs
+          readOnly: no
+      - name: gitlab-config
+        nfs:
+          server: 10.20.9.111
+          path: /var/nfs/general/gitlab-igor/config
+          readOnly: no
+      tolerations:
+      - effect: NoExecute
+        key: node.kubernetes.io/not-ready
+        operator: Exists
+        tolerationSeconds: 30
+      - effect: NoExecute
+        key: node.kubernetes.io/unreachable
+        operator: Exists
+        tolerationSeconds: 30
