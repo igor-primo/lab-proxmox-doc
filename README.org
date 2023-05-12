@@ -216,12 +216,19 @@ com usuário e grupo nobody.
   chmod 777 -R /var/nfs/general/<DIR>
   chown nobody:nobody -R /var/nfs/general/<DIR>
 #+end_src
-** Aplicação do Deployment do MySQL
-Em um dos master nodes (control_planes) executar os seguintes comandos:
+** Cópia dos arquivos de configuração para o cluster
+Copie os arquivos de configuração mysql-dep.yml, mysql-serv.yml,
+wordpress-dep.yml e wordpress-serv.yml para o cluster utilizando o
+comando, na raíz do projeto:
 #+begin_src sh
-  kubectl apply -f mysql-dep.yml
+  scp wordpress/*.yml root@<HOST-IP>
 #+end_src
-#+begin_src txt :tangle mysql-dep.yml
+Onde HOST-IP é o IP de um dos control_planes do cluster.
+** Aplicação do Deployment do MySQL
+Logado em um dos master nodes (control_planes) modificar o seguinte
+arquivo de configuração para servir suas necessidades, como o caminho
+para o diretório dos arquivos da aplicação no servidor NFS.
+#+begin_src txt :tangle wordpress/mysql-dep.yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -263,17 +270,21 @@ spec:
         operator: Exists
         tolerationSeconds: 30
 #+end_src
+Depois execute o seguinte comando para levantar o deployment do MySQL.
+#+begin_src sh
+  kubectl apply -f mysql-dep.yml
+#+end_src
 O seguintes comandos podem ser utilizados para resgatar informações básicas
-Sobre o deployment e sobre o pod criado.
+sobre o deployment e sobre o pod criado.
 #+begin_src sh
   kubectl get deployment -o wide
   kubectl get pod -o wide
 #+end_src
 ** Aplicação do Service do MySQL
-#+begin_src sh
-  kubectl apply -f mysql-serv.yml
-#+end_src
-#+begin_src txt :tangle mysql-serv.yml
+O seguinte arquivo configura o serviço para o MySQL. Caso queira, pode
+modificar a porta de acesso externo serviço do pod modificando o campo
+"targetPort".
+#+begin_src txt :tangle wordpress/mysql-serv.yml
 apiVersion: v1
 kind: Service
 metadata:
@@ -286,16 +297,20 @@ spec:
       port: 3306
       targetPort: 3306
 #+end_src
-O seguintes comandos podem ser utilizados para resgatar informações básicas
+Utilize o seguinte comando para aplicar a configuração do serviço MySQL.
+#+begin_src sh
+  kubectl apply -f mysql-serv.yml
+#+end_src
+O seguinte comando pode ser utilizado para resgatar informações básicas
 sobre o Service criado.
 #+begin_src sh
   kubectl get svc -o wide
 #+end_src
 ** Aplicação do Deployment do Wordpress
-#+begin_src sh
-  kubectl apply -f wordpress-dep.yml
-#+end_src
-#+begin_src txt :tangle wordpress-dep.yml
+Novamente, revise o seguinte arquivo de configuração do deployment
+para o Wordpress e modifique os campos que forem necessários, como o
+para os arquivos específicos do Wordpress no servidor NFS.
+#+begin_src txt :tangle wordpress/wordpress-dep.yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -343,12 +358,15 @@ spec:
         operator: Exists
         tolerationSeconds: 30
 #+end_src
-** Aplicação do Service do Wordpress
+Utilize o seguinte comando para aplicar o deployment do Wordpress.
 #+begin_src sh
-  kubectl apply -f wordpress-serv.yml
+  kubectl apply -f wordpress-dep.yml
 #+end_src
-#+begin_src txt :tangle wordpress-serv.yml
-apiVersion: v1
+** Aplicação do Service do Wordpress
+Revise o arquivo de configuração do serviço Wordpress e modifique os
+campos que achar necessário.
+#+begin_src txt :tangle wordpress/wordpress-serv.yml
+xuapiVersion: v1
 kind: Service
 metadata:
   name: wordpress-service
@@ -362,6 +380,10 @@ spec:
       targetPort: 80
       nodePort: 30036 
 #+end_src
+O seguinte comando aplica a configuração do serviço Wordpress.
+#+begin_src sh
+  kubectl apply -f wordpress-serv.yml
+#+end_src
 Os seguintes comandos podem ser utilizados para fazer troubleshooting
 nos respectivos componentes Kubernetes:
 #+begin_src sh
@@ -373,6 +395,7 @@ nos respectivos componentes Kubernetes:
 ** Criação do banco de dados MySQL no container
 A partir de control_plane logar no container:
 #+begin_src sh
+  kubectl get pods
   kubectl exec -it <MYSQL_POD_NAME> -- bash
   mysql -u root -p
   # no prompt do shell do mysql:
@@ -411,7 +434,7 @@ A [[https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/blob/mast
   apresenta erros quando a máquina de onde parte a instalação será um
   nó do cluster. Com a utilização dos ambientes virtuais do python, o
   interpretador python utilizado é o que está dentro do ambiente
-  virtual. O ansible não consegue encontrar o módulo selinux-python,
+  Virtual. O ansible não consegue encontrar o módulo selinux-python,
   nesse caso, mas consegue encontrar caso utilizemos o ambiente global
   do python.
 
