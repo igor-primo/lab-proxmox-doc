@@ -1,10 +1,4 @@
 # ./kubespray-install.sh
-if [ ! -d /tmp/repos ]; then
-	mkdir /tmp/repos
-fi
-
-cd /tmp/repos
-
 if [ ! -d ./kubespray ]; then
 	git clone https://github.com/kubernetes-sigs/kubespray
 fi

@@ -49,12 +49,6 @@ várias versões. Em alguns dos scripts/snippets que seguem,
 utilizaremos essas dependências por conveniência.
 #+begin_src sh :tangle kubespray-install.sh
 	# ./kubespray-install.sh
-	if [ ! -d /tmp/repos ]; then
-		mkdir /tmp/repos
-	fi
-
-	cd /tmp/repos
-
 	if [ ! -d ./kubespray ]; then
 		git clone https://github.com/kubernetes-sigs/kubespray
 	fi
@@ -86,7 +80,7 @@ nesse repositório.
 #+begin_src sh :tangle update-systems.sh
   # ./update-systems.sh
   (
-	  source /tmp/repos/kubespray-venv/bin/activate
+	  source ./kubespray-venv/bin/activate
 	  ansible-playbook -i inventory.ini update-systems-playbook.yaml --become --become-user=root
   )
 #+end_src
@@ -113,7 +107,7 @@ Caso os firewalls não tenham sido desabilitados, desabilitá-los.
 #+begin_src sh :tangle remove-firewall.sh
   # ./remove-firewall.sh
   (
-	  source /tmp/repos/kubespray-venv/bin/activate
+	  source ./kubespray-venv/bin/activate
 	  ansible-playbook -i inventory.ini remove-firewall-playbook.yaml --become --become-user=root
   )
 #+end_src
@@ -138,6 +132,8 @@ ser omitido de qualquer modo.
 Os seguintes passos, que são os mais importantes, devem ser executados manualmente:
 #+begin_src sh
   # Na raíz do projeto kubespray.
+  cd kubespray
+  
   cp -rfp inventory/sample inventory/mycluster
   # IPS é um vetor contendo os IPs dos hosts do cluster.
   declare -a IPS=()
@@ -218,7 +214,7 @@ com usuário e grupo nobody.
 #+end_src
 ** Cópia dos arquivos de configuração para o cluster
 Copie os arquivos de configuração mysql-dep.yml, mysql-serv.yml,
-wordpress-dep.yml e wordpress-serv.yml para o cluster utilizando o
+wordpress-dep.yml e wordpress-serv.yml para um master do cluster utilizando o
 comando, na raíz do projeto:
 #+begin_src sh
   scp wordpress/*.yml root@<HOST-IP>
