@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab-runner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: gitlab-runner
+  template:
+    metadata:
+      labels:
+        name: gitlab-runner
+    spec:
+      containers:
+        - args:
+          - run
+          image: gitlab/gitlab-runner:latest
+          imagePullPolicy: Always
+          name: gitlab-runner
+          resources:
+            requests:
+              cpu: "100m"
+            limits:
+              cpu: "100m"
+          volumeMounts:
+            - name: config
+              mountPath: /etc/gitlab-runner
+              readOnly: no
+      volumes:
+        - name: config
+          nfs:
+            server: 10.20.9.111
+            path: /var/nfs/general/gitlab-igor/config
+            readOnly: no
+      restartPolicy: Always

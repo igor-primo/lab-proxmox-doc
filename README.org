@@ -488,7 +488,181 @@ Execute o seguinte comando para aplicar a configuração:
 #+begin_src sh
   kubectl apply -f gitlab-serv.yml
 #+end_src
-* TODO Instalação de um Runner no Gitlab
+* Instalação de um Runner no Gitlab
+** Instalação do Docker
+#+begin_src sh :tangle ./install-docker.sh
+  #./install-docker.sh
+  dnf upgrade --refresh -y
+  dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+  dnf install docker-ce docker-ce-cli containerd.io
+  systemctl start docker
+#+end_src
+** Logar numa instância Docker do Gitlab Runner
+#+begin_src
+docker run -it --entrypoint /bin/bash gitlab/gitlab-runner:latest
+#+end_src
+** Registrar o Gitlab Runner
+*** Gerar um token para registrar o Gitlab Runner
+Crie um repositório teste na sua instância do Gitlab. Acesse o
+repositório teste e na tela do repositório vá em Settings -> CI/CD ->
+Runners e siga as instruções para registrar um novo runner. O runner
+no nosso caso deve utilizar a plataforma Linux e deve ser configurado
+para executar trabalhados sem tag acionando o checkbox "Run untagged
+jobs".
+
+Você será direcionado para uma tela onde constará o token gerado.
+*** Registrar
+Volte para o shell logado no container Docker e execute:
+#+begin_src sh
+gitlab-runner register --url <CAMINHO_PARA_O_CLUSTER> --token <TOKEN_GERADO>
+#+end_src
+O CAMINHO_PARA_O_CLUSTER é o IP para qualquer nó do cluster (ex.:
+http://10.20.9.116:30036).
+Você pode visualizar o arquivo de configuração, gerado
+automaticamente, do Runner com o comando:
+#+begin_src s
+more /etc/gitlab-runner/config.toml
+#+end_src
+Nós vamos utilizar esse arquivo para configurar o nosso container
+Kubernetes do Gitlab Runner. No meu caso o arquivo é estruturado
+assim:
+#+begin_src txt :tangle ./gitlab/config.toml
+concurrent = 1
+check_interval = 0
+shutdown_timeout = 0
+
+[session_server]
+  session_timeout = 1800
+
+[[runners]]
+  name = "runner"
+  url = "http://10.20.9.116:30036"
+  id = 1
+  token = "glrt-qJDS_pTGimZC8YtaoBPw"
+  token_obtained_at = 2023-05-31T16:40:36Z
+  token_expires_at = 0001-01-01T00:00:00Z
+  executor = "docker"
+  [runners.cache]
+    MaxUploadedArchiveSize = 0
+  [runners.docker]
+    tls_verify = false
+    image = "busybox:latest"
+    privileged = false
+    disable_entrypoint_overwrite = false
+    oom_kill_disable = false
+    disable_cache = false
+    volumes = ["/cache"]
+    shm_size =0 
+#+end_src
+Agora podemos deslogar do container Docker e proceder para os
+próximos passos.
+*** Configurar o Gitlab Runner do Kubernetes
+Para configurar o Gitlab Runner, precisamos adicinoar papéis de
+autenticação para o cluster Kubernetes ao runner. O seguinte
+arquivo provê essa configuração:
+#+begin_src txt :tangle ./gitlab/gitlab-runner-authentication.yml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gitlab-admin
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: gitlab-admin
+rules:
+  - apiGroups: [""]
+    resources: ["*"]
+    verbs: ["*"]
+
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: gitlab-admin
+subjects:
+  - kind: ServiceAccount
+    name: gitlab-admin
+roleRef:
+  kind: Role
+  name: gitlab-admin
+  apiGroup: rbac.authorization.k8s.io
+#+end_src
+Aplique essa configuração com o comando:
+#+begin_src sh
+kubectl apply -f gitlab-runner-authentication.yml
+#+end_src
+Depois de termos um ServiceAccount, Role e RoleBinding configurados
+precisamos de um ConfigMap para persistir a configuração do runner.
+O arquivo de configuração do ConfigMap deve especificar o arquivo de
+configuração do runner que roubamos do container docker com algumas
+modificações para adaptá-lo ao ambinete Kubernetes. No meu caso,
+ficou assim:
+#+begin_src txt :tangle ./gitlab/gitlab-runner-config.yml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gitlab-runner-config
+data:
+  config.toml: |-
+     concurrent = 4
+     [[runners]]
+       name = "runner"
+       url = "http://10.20.9.116:30036"
+       id = 1
+       token = "glrt-qJDS_pTGimZC8YtaoBPw"
+       token_obtained_at = 2023-05-31T16:40:36Z
+       token_expires_at = 0001-01-01T00:00:00Z
+       executor = "kubernetes"
+       [runners.kubernetes]
+          poll_timeout = 600
+          cpu_request = "1"
+          service_cpu_request = "200m"
+#+end_src
+Após a aplicação dessa configuração, aplicamos a configuração do
+Deployment:
+#+begin_src txt :tangle ./gitlab/gitlab-runner-deployment.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab-runner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: gitlab-runner
+  template:
+    metadata:
+      labels:
+        name: gitlab-runner
+    spec:
+      serviceAccountName: gitlab-admin
+      containers:
+        - args:
+          - run
+          image: gitlab/gitlab-runner:latest
+          imagePullPolicy: Always
+          name: gitlab-runner
+          resources:
+            requests:
+              cpu: "100m"
+            limits:
+              cpu: "100m"
+          volumeMounts:
+            - name: config
+              mountPath: /etc/gitlab-runner/config.toml
+              readOnly: true
+              subPath: config.toml
+      volumes:
+        - name: config
+          configMap:
+            name: gitlab-runner-config
+      restartPolicy: Always
+#+end_src
+*** Verificar a instalação do runner
+Você pode verificar se a instalação do runner obteve sucesso indo para
+a tela Settings -> CI/CD -> Runners e checando se há um runner verde
+na seção "Assigned project runners".
 * Problemas encontrados
 ** 04-24-2023, 14:12
 -  Após a instalação com sucesso houve algumas falhas: 1 nó
@@ -514,3 +688,5 @@ Execute o seguinte comando para aplicar a configuração:
   nesse caso, mas consegue encontrar caso utilizemos o ambiente global
   do python.
 
+* TODO Correções
+- Corrigir URL para instância Gitlab
