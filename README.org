@@ -554,8 +554,11 @@ shutdown_timeout = 0
     volumes = ["/cache"]
     shm_size =0 
 #+end_src
-Agora podemos deslogar do container Docker e proceder para os
-próximos passos.
+Agora podemos deslogar do container Docker e derrubar o serviço Docker
+e proceder para os próximos passos.
+#+begin_src sh
+systemctl stop docker
+#+end_src
 *** Configurar o Gitlab Runner do Kubernetes
 Para configurar o Gitlab Runner, precisamos adicinoar papéis de
 autenticação para o cluster Kubernetes ao runner. O seguinte
