@@ -22,7 +22,9 @@ feito manualmente.
   # A variável HOSTS deve conter os IPs dos hosts da instalação do cluster.
   # Exemplo: HOSTS=(10.20.1.123 10.20.1.124)
   HOSTS=()
+  # Gera uma chave RSA
   ssh-keygen -q -t rsa -b 4096 -f ~/.ssh/id_rsa -P ""
+  # Copia a chave pública correspondente para os hospedeiros remotos
   for HOST in "${HOSTS[@]}"; do ssh-copy-id $USER@$HOST; done
 #+end_src
 * Instalar Python
@@ -68,7 +70,7 @@ utilizaremos essas dependências por conveniência.
 	cd $KUBESPRAYDIR
 	pip install -U -r requirements-$ANSIBLE_VERSION.txt
   elif [ $EXTERNAL ="N" ]; then 
-	cd kubespray
+	cd kubespray-2.22.0
 	pip install -U -r requirements.txt
   else
 	echo "Entrada inválida"
@@ -79,15 +81,10 @@ Caso não tenha sido feito ou precisa fazer novamente, atualizar os
 sistemas operacionais. Esse script depende da existência dos arquivos
 "inventory.ini" e "update-systems-playbook.yaml" que são providos
 nesse repositório.
-#+begin_src sh :tangle update-systems.sh
-  # ./update-systems.sh
-  (
-	  source ./kubespray-venv/bin/activate
-	  ansible-playbook -i inventory.ini update-systems-playbook.yaml --become --become-user=root
-  )
-#+end_src
-Playbook Ansible que especifica a tarefa para atualizar os pacotes do
-sistema operacional alvo para as versões mais recentes da distribuição.
+
+Esse é playbook Ansible que especifica a tarefa para atualizar os pacotes do
+sistema operacional alvo para as versões mais recentes da
+distribuição. Não precisa ser modificado.
 #+begin_src yml :tangle update-systems-playbook.yaml
 - name: Atualiza sistema
   hosts: server*
@@ -98,21 +95,31 @@ sistema operacional alvo para as versões mais recentes da distribuição.
       name: '*'
       state: latest
 #+end_src
-Inventário contendo configuração para acesso aos hosts. Esse arquivo
+Esse é o inventário contendo configuração para acesso aos hosts. Esse arquivo
 deve ser atualizado com os IPs dos hosts do cluster manualmente.
 #+begin_src text :tangle inventory.ini
 server1 ansible_host=10.20.1.113
 server2 ansible_host=10.20.1.115
 #+end_src
-* Desabilitar firewall
-Caso os firewalls não tenham sido desabilitados, desabilitá-los.
-#+begin_src sh :tangle remove-firewall.sh
-  # ./remove-firewall.sh
+Esse é o mini-roteiro a ser utilizado para aplicar o YAML anterior.
+#+begin_src sh :tangle update-systems.sh
+  # ./update-systems.sh
   (
-	  source ./kubespray-venv/bin/activate
-	  ansible-playbook -i inventory.ini remove-firewall-playbook.yaml --become --become-user=root
+	  # Se o diretório ./kubespray-venv existe, assuma que
+	  # a instalação parte de uma máquina exterior ao cluster
+	  # e carregue as variáveis do ambiente virtual
+	  if [ -d ./kubespray-venv ]; then
+		  source ./kubespray-venv/bin/activate
+	  fi
+	  ansible-playbook -i inventory.ini update-systems-playbook.yaml --become --become-user=root
   )
 #+end_src
+* Desabilitar firewall
+Caso os firewalls não tenham sido desabilitados, desabilitá-los.
+
+Esse é o playbook Ansible utilizado para instruir o Ansible para
+executar os comandos para parar e desabilitar o serviço de firewall
+nas máquinas alvo.
 #+begin_src yml :tangle remove-firewall-playbook.yaml
 - name: Remove firewall e habilitar login de root via SSH
   hosts: server*
@@ -123,18 +130,32 @@ Caso os firewalls não tenham sido desabilitados, desabilitá-los.
       systemctl stop firewalld.service
       systemctl disable firewalld.service
 #+end_src
+Esse é o snippet para aplicar a configuração.
+#+begin_src sh :tangle remove-firewall.sh
+  # ./remove-firewall.sh
+  (
+	  # Se o diretório ./kubespray-venv existe, assuma que
+	  # a instalação parte de uma máquina exterior ao cluster
+	  # e carregue as variáveis do ambiente virtual
+	  if [ -d ./kubespray-venv ]; then
+		  source ./kubespray-venv/bin/activate
+	  fi
+	  ansible-playbook -i inventory.ini remove-firewall-playbook.yaml --become --become-user=root
+  )
+#+end_src
 * Próximos passos
 Próximos passos são documentados no repositório oficial do [[https://github.com/kubernetes-sigs/kubespray][Kubespray]].
 Mas há algumas ressalvas. A instalação utilizando ambientes virtuais
-do python quando a instalação é feita a partir de uma máquina que será
+do Python quando a instalação é feita a partir de uma máquina que será
 um nó do cluster apresenta erros na busca de dependências do python.
-Caso a máquina de partida da instalação deva ser um nó esse passo pode
-ser omitido de qualquer modo.
+Mas como caso a máquina deva ser parte do cluster esse roteiro instrui
+para não utilizar ambientes virtuais do Python para instalar as
+dependências do Kubespray, esse problema já foi contornado.
 
 Os seguintes passos, que são os mais importantes, devem ser executados manualmente:
 #+begin_src sh
   # Na raíz do projeto kubespray.
-  cd kubespray
+  cd kubespray-2.22.0
   
   cp -rfp inventory/sample inventory/mycluster
   # IPS é um vetor contendo os IPs dos hosts do cluster.
@@ -159,14 +180,15 @@ Os seguintes passos, que são os mais importantes, devem ser executados manualme
 Os passos utilizados para instalação do Wordpress e MySQL consistem
 na aplicação de um [[https://kubernetes.io/docs/concepts/workloads/controllers/deployment/][deployment]] e de um [[https://kubernetes.io/docs/concepts/services-networking/service/][service]] para cada
 componente. Cada deployment possuirá também uma configuração para
-utilizar um servidor NFS como armazenamento persistente, com o intúito
-de preservar a configuração das aplicações e e dos dados do banco de dados entre
+utilizar um servidor NFS como armazenamento persistente, com o intuito
+de preservar a configuração das aplicações e dos dados do banco de dados entre
 possíveis deployments (ex.: um nó é desligo ou cai).
 Também possuirá uma configuração que especifica uma [[https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/][toleration]], i.e.,
 um espaço de tempo que um container permanecerá atrelado a um nó
 enquanto uma taint for verificada, por exemplo, quando a taint
-not-ready estiver verificada quando o nó estiver fora do ar.
-
+not-ready estiver verificada quando o nó estiver fora do ar. Para mais
+detalhes sobre o que esses termos significam, vide a documentação
+referenciada nos links nesse parágrafo.
 ** Instalação do servidor NFS
 Antes de tudo, executamos o seguinte roteiro para criar um servidor
 NFS. No host onde o servidor NFS será hospedado, executar, como raiz:
@@ -175,11 +197,12 @@ NFS. No host onde o servidor NFS será hospedado, executar, como raiz:
   dnf install nfs-utils -y
   mkdir /var/nfs/general -p
   touch /etc/exports
-  
+
   # Colocar IPs dos workers no vetor HOSTS.
   # Exemplo: HOSTS=(10.20.1.113 10.20.1.118)
+  # Exportamos a variável para podermos utilizar essa variável em outros momentos, caso cabível.
   export HOSTS=()
-  # Fazemos export para podermos utilizar essa variável em outros momentos, caso cabível.
+  
   for i in "${HOSTS[@]}"; do echo "/var/nfs/general $i(rw,no_subtree_check,no_root_squash)" >> /etc/exports;done
 
   systemctl enable nfs-server
@@ -209,10 +232,10 @@ Deve-se também criar pastas específicas de cada aplicação no diretório
 /var/nfs/general/
 (ex.: /var/nfs/general/mysql-igor)
 e deixá-las com permissão 777 para evitar erros de permissão e também
-com usuário e grupo nobody.
+com usuário e grupo nobody. Os comandos são esses, por exemplo:
 #+begin_src sh
-  chmod 777 -R /var/nfs/general/<DIR>
-  chown nobody:nobody -R /var/nfs/general/<DIR>
+  chmod -R 777 /var/nfs/general/mysql-igor
+  chown -R nobody:nobody /var/nfs/general/mysql-igor
 #+end_src
 ** Cópia dos arquivos de configuração para o cluster
 Copie os arquivos de configuração mysql-dep.yml, mysql-serv.yml,
@@ -222,11 +245,35 @@ comando, na raíz do projeto:
   scp wordpress/*.yml root@<HOST-IP>
 #+end_src
 Onde HOST-IP é o IP de um dos control_planes do cluster.
+** Troubleshooting
+Para fazer troubleshooting, visualizar logs e informações sobre as
+ações do kubernetes pode-se utilizar esses comandos:
+#+begin_src sh
+  # Lista deployments
+  kubectl get deployments -o wide
+
+  # Lista pods
+  kubectl get pods -o wide
+
+  # Lista serviços
+  kubectl get svc -o wide
+
+  # Visualiza detalhes sobre um recurso ou grupo de recursos específico
+  kubectl describe deployments
+  kubectl describe deployment <DEPLOYMENT_NAME>
+
+  # Visualiza logs emitidos por um pod
+  kubectl logs --follow <POD_NAME>
+
+  # Para ver os detalhes de todos os comandos possívels
+  kubectl --help | less
+#+end_src
 ** Aplicação do Deployment do MySQL
 Logado em um dos master nodes (control_planes) modificar o seguinte
 arquivo de configuração para servir suas necessidades, como o caminho
 para o diretório dos arquivos da aplicação no servidor NFS.
 #+begin_src txt :tangle wordpress/mysql-dep.yml
+# Arquivo: mysql-dep.yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -272,17 +319,12 @@ Depois execute o seguinte comando para levantar o deployment do MySQL.
 #+begin_src sh
   kubectl apply -f mysql-dep.yml
 #+end_src
-O seguintes comandos podem ser utilizados para resgatar informações básicas
-sobre o deployment e sobre o pod criado.
-#+begin_src sh
-  kubectl get deployment -o wide
-  kubectl get pod -o wide
-#+end_src
 ** Aplicação do Service do MySQL
 O seguinte arquivo configura o serviço para o MySQL. Caso queira, pode
 modificar a porta de acesso externo serviço do pod modificando o campo
 "targetPort".
 #+begin_src txt :tangle wordpress/mysql-serv.yml
+# Arquivo: mysql-serv.yml
 apiVersion: v1
 kind: Service
 metadata:
@@ -299,16 +341,12 @@ Utilize o seguinte comando para aplicar a configuração do serviço MySQL.
 #+begin_src sh
   kubectl apply -f mysql-serv.yml
 #+end_src
-O seguinte comando pode ser utilizado para resgatar informações básicas
-sobre o Service criado.
-#+begin_src sh
-  kubectl get svc -o wide
-#+end_src
 ** Aplicação do Deployment do Wordpress
 Novamente, revise o seguinte arquivo de configuração do deployment
 para o Wordpress e modifique os campos que forem necessários, como o
 para os arquivos específicos do Wordpress no servidor NFS.
 #+begin_src txt :tangle wordpress/wordpress-dep.yml
+# Arquivo: wordpress-dep.yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -364,7 +402,8 @@ Utilize o seguinte comando para aplicar o deployment do Wordpress.
 Revise o arquivo de configuração do serviço Wordpress e modifique os
 campos que achar necessário.
 #+begin_src txt :tangle wordpress/wordpress-serv.yml
-xuapiVersion: v1
+# Arquivo: wordpress-serv.yml
+apiVersion: v1
 kind: Service
 metadata:
   name: wordpress-service
@@ -382,15 +421,12 @@ O seguinte comando aplica a configuração do serviço Wordpress.
 #+begin_src sh
   kubectl apply -f wordpress-serv.yml
 #+end_src
-Os seguintes comandos podem ser utilizados para fazer troubleshooting
-nos respectivos componentes Kubernetes:
-#+begin_src sh
-  kubectl describe deployment
-  kubectl describe pod
-  kubectl describe service
-  kubectl logs <POD_NAME>
-#+end_src
 ** Criação do banco de dados MySQL no container
+Para que o Wordpress funcione precisamos criar, manualmente, um banco
+de dados chamado 'wordpress'. Para isso, logamos no container do MySQL
+e utilizamos o utilitário 'mysql' para emitir o comando de criação do
+banco de dados.
+
 A partir de control_plane logar no container:
 #+begin_src sh
   kubectl get pods
@@ -408,6 +444,7 @@ os campos necessários, como os caminhos nos volumes "gitlab-data",
 "gitlab-logs" e "gitlab-config" para servir a sua configuração. Vale
 ressaltar que os caminhos para esses volumes devem ser diferentes.
 #+begin_src txt :tangle gitlab/gitlab-dep.yml
+# Arquivo: gitlab-dep.yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -472,6 +509,7 @@ Execute o seguinte comando para aplicar a configuração do deployment:
 Revise o arquivo de configuração para o serviço do Gitlab e edite o
 que achar necessário.
 #+begin_src txt :tangle gitlab/gitlab-serv.yml
+# Arquivo: gitlab-serv
 apiVersion: v1
 kind: Service
 metadata:
@@ -491,11 +529,16 @@ Execute o seguinte comando para aplicar a configuração:
   kubectl apply -f gitlab-serv.yml
 #+end_src
 * Instalação de um Runner no Gitlab
+Antes de de fato instalarmos o Runner do Gitlab, precisamos
+registrá-lo no Gitlab. Para isso, instalamos o Runner num container Docker
+apenas para registrá-lo no Gitlab. Depois descartamos o container e
+instalamos outro Runner utilizando kubectl e utilizamos a configuração
+do outro Runner, modificada, para configurar o novo Runner.
 ** Instalação do Docker
 #+begin_src sh :tangle ./install-docker.sh
-  #./install-docker.sh
-  dnf upgrade --refresh -y
+  # ./install-docker.sh
   dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+  dnf upgrade --refresh -y
   dnf install docker-ce docker-ce-cli containerd.io
   systemctl start docker
 #+end_src
@@ -522,7 +565,7 @@ O CAMINHO_PARA_O_CLUSTER é o IP para qualquer nó do cluster (ex.:
 http://10.20.9.116:30036).
 Você pode visualizar o arquivo de configuração, gerado
 automaticamente, do Runner com o comando:
-#+begin_src s
+#+begin_src sh
 more /etc/gitlab-runner/config.toml
 #+end_src
 Nós vamos utilizar esse arquivo para configurar o nosso container
@@ -557,15 +600,17 @@ shutdown_timeout = 0
     shm_size =0 
 #+end_src
 Agora podemos deslogar do container Docker e derrubar o serviço Docker
-e proceder para os próximos passos.
+e proceder para os próximos passos. Podemos também parar o serviço Docker:
 #+begin_src sh
 systemctl stop docker
 #+end_src
 *** Configurar o Gitlab Runner do Kubernetes
-Para configurar o Gitlab Runner, precisamos adicinoar papéis de
-autenticação para o cluster Kubernetes ao runner. O seguinte
+Para configurar o Gitlab Runner, precisamos adicionar um
+ServiceAccount, um Role e um RoleBinding respectivo ao Runner no
+cluster. O seguinte
 arquivo provê essa configuração:
 #+begin_src txt :tangle ./gitlab/gitlab-runner-authentication.yml
+# Arquivo: gitlab-runner-authentication.yml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -600,10 +645,11 @@ kubectl apply -f gitlab-runner-authentication.yml
 Depois de termos um ServiceAccount, Role e RoleBinding configurados
 precisamos de um ConfigMap para persistir a configuração do runner.
 O arquivo de configuração do ConfigMap deve especificar o arquivo de
-configuração do runner que roubamos do container docker com algumas
-modificações para adaptá-lo ao ambinete Kubernetes. No meu caso,
+configuração do runner que roubamos do container Docker com algumas
+modificações para adaptá-lo ao ambiente Kubernetes. No meu caso,
 ficou assim:
 #+begin_src txt :tangle ./gitlab/gitlab-runner-config.yml
+# Arquivo: gitlab-runner-config.yml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -627,6 +673,7 @@ data:
 Após a aplicação dessa configuração, aplicamos a configuração do
 Deployment:
 #+begin_src txt :tangle ./gitlab/gitlab-runner-deployment.yml
+# Arquivo: gitlab-runner-deployment.yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -664,8 +711,8 @@ spec:
             name: gitlab-runner-config
       restartPolicy: Always
 #+end_src
-*** Verificar a instalação do runner
-Você pode verificar se a instalação do runner obteve sucesso indo para
+*** Verificar a instalação do Runner
+Você pode verificar se a instalação do Runner obteve sucesso indo para
 a tela Settings -> CI/CD -> Runners e checando se há um runner verde
 na seção "Assigned project runners".
 *** Referência
@@ -678,6 +725,24 @@ Vide [[https://adambcomer.com/blog/install-gitlab-runner-kubernetes/][referênci
   kubectl create namespace darwin
   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
   helm install prometheus prometheus-community/kube-prometheus-stack --namespace darwin
+#+end_src
+#+begin_src txt :tangle ./prometheus/prometheus-config.yaml
+apiVersion: apps/v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: darwin
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      scrape_timeout: 10s
+      evaluation_interval: 15s
+    scrape_configs:
+      - job_name: 'darwin-service'
+        scrape_interval: 5s
+        static_configs:
+          - targets: ['darwin-service:8080']
 #+end_src
 **** Configuração
 *** Instalação de Grafana

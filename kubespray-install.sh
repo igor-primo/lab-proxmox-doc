@@ -1,7 +1,7 @@
 # ./kubespray-install.sh
 if [ ! -d ./kubespray-2.22.0 ]; then
 	wget https://github.com/kubernetes-sigs/kubespray/archive/refs/tags/v2.22.0.tar.gz
-	tar -xvf v2.22.0.tar.gz
+	tar -xf v2.22.0.tar.gz
 	rm v2.22.0.tar.gz
 fi
 

@@ -1,0 +1,16 @@
+apiVersion: apps/v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: darwin
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      scrape_timeout: 10s
+      evaluation_interval: 15s
+    scrape_configs:
+      - job_name: 'darwin-service'
+        scrape_interval: 5s
+        static_configs:
+          - targets: ['darwin-service:8080']
