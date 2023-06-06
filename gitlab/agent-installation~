@@ -1,0 +1,8 @@
+helm repo add gitlab https://charts.gitlab.io
+helm repo update
+helm upgrade --install my-agent gitlab/gitlab-agent \
+    --namespace gitlab-agent-my-agent \
+    --create-namespace \
+    --set image.tag=v16.0.1 \
+    --set config.token=x9RAUW4-GKeH5o4Ui2woiFAJopy-3ehrmm_bbhsLf4zMYwaJyg \
+    --set config.kasAddress=ws://gitlab.example.com/-/kubernetes-agent/

@@ -1,6 +1,8 @@
 # ./kubespray-install.sh
-if [ ! -d ./kubespray ]; then
-	git clone https://github.com/kubernetes-sigs/kubespray
+if [ ! -d ./kubespray-2.22.0 ]; then
+	wget https://github.com/kubernetes-sigs/kubespray/archive/refs/tags/v2.22.0.tar.gz
+	tar -xvf v2.22.0.tar.gz
+	rm v2.22.0.tar.gz
 fi
 
 EXTERNAL=""
@@ -9,7 +11,7 @@ if [ $EXTERNAL = "y" ]; then
   pip install virtualenv
 
   VENVDIR=kubespray-venv
-  KUBESPRAYDIR=kubespray
+  KUBESPRAYDIR=kubespray-2.22.0
   ANSIBLE_VERSION=2.12
   virtualenv  --python=$(which python3) $VENVDIR
   source $VENVDIR/bin/activate

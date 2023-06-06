@@ -48,29 +48,31 @@ incompatibilidade entre versões de um mesmo software requerido em
 várias versões. Em alguns dos scripts/snippets que seguem,
 utilizaremos essas dependências por conveniência.
 #+begin_src sh :tangle kubespray-install.sh
-	# ./kubespray-install.sh
-	if [ ! -d ./kubespray ]; then
-		git clone https://github.com/kubernetes-sigs/kubespray
-	fi
+  # ./kubespray-install.sh
+  if [ ! -d ./kubespray-2.22.0 ]; then
+	  wget https://github.com/kubernetes-sigs/kubespray/archive/refs/tags/v2.22.0.tar.gz
+	  tar -xf v2.22.0.tar.gz
+	  rm v2.22.0.tar.gz
+  fi
 
-	EXTERNAL=""
-	read -p "A instalação do cluster parte de uma máquina externa ao cluster? (y/N)" EXTERNAL
-	if [ $EXTERNAL = "y" ]; then
-	  pip install virtualenv
+  EXTERNAL=""
+  read -p "A instalação do cluster parte de uma máquina externa ao cluster? (y/N)" EXTERNAL
+  if [ $EXTERNAL = "y" ]; then
+	pip install virtualenv
 
-	  VENVDIR=kubespray-venv
-	  KUBESPRAYDIR=kubespray
-	  ANSIBLE_VERSION=2.12
-	  virtualenv  --python=$(which python3) $VENVDIR
-	  source $VENVDIR/bin/activate
-	  cd $KUBESPRAYDIR
-	  pip install -U -r requirements-$ANSIBLE_VERSION.txt
-	elif [ $EXTERNAL ="N" ]; then 
-	  cd kubespray
-	  pip install -U -r requirements.txt
-	else
-	  echo "Entrada inválida"
-	fi
+	VENVDIR=kubespray-venv
+	KUBESPRAYDIR=kubespray-2.22.0
+	ANSIBLE_VERSION=2.12
+	virtualenv  --python=$(which python3) $VENVDIR
+	source $VENVDIR/bin/activate
+	cd $KUBESPRAYDIR
+	pip install -U -r requirements-$ANSIBLE_VERSION.txt
+  elif [ $EXTERNAL ="N" ]; then 
+	cd kubespray
+	pip install -U -r requirements.txt
+  else
+	echo "Entrada inválida"
+  fi
   #+end_src
 * Atualizar sistemas
 Caso não tenha sido feito ou precisa fazer novamente, atualizar os
@@ -666,30 +668,17 @@ spec:
 Você pode verificar se a instalação do runner obteve sucesso indo para
 a tela Settings -> CI/CD -> Runners e checando se há um runner verde
 na seção "Assigned project runners".
-* Problemas encontrados
-** 04-24-2023, 14:12
--  Após a instalação com sucesso houve algumas falhas: 1 nó
-   configurado como control_plane não consta como control_plano na
-   saída do comando "kubectl get node".
--  Após a instalação 2 nós constam como status "NotReady".
--  Os passos para chegar nessa situação foram:
-   + Primeiro foi feita uma tentativa de instalação com inventário
-     manualmente escrito. Nessa tentativa houve 1 único erro em todos
-     os nós que dizia respeito ao serviço de firewall do SO.
-   + Depois foi feita uma tentativa com um inventário escrito
-     automaticamente pelo script como está na documentação do
-     Kubespray. O script não modificou coisas relevantes no
-     inventário. Nessa instalação houveram erros que diziam respeito
-     ao nome de módulos de kernel, mas o sumário ao fim da instalação
-     não constavam como se a instalação tivesse sido prejudicada por isso.
-** 04-25-2023, 12:00
-- Instalação do Kubernetes utilizando ambientes virtuais do python
-  apresenta erros quando a máquina de onde parte a instalação será um
-  nó do cluster. Com a utilização dos ambientes virtuais do python, o
-  interpretador python utilizado é o que está dentro do ambiente
-  Virtual. O ansible não consegue encontrar o módulo selinux-python,
-  nesse caso, mas consegue encontrar caso utilizemos o ambiente global
-  do python.
-
-* TODO Correções
-- Corrigir URL para instância Gitlab
+*** Referência
+Vide [[https://adambcomer.com/blog/install-gitlab-runner-kubernetes/][referência]].
+** Criação de pipeline CI/CD no Gitlab
+** Configuração de Grafana
+*** Instalação de Prometheus
+**** Deploy
+#+begin_src sh
+  kubectl create namespace darwin
+  helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+  helm install prometheus prometheus-community/kube-prometheus-stack --namespace darwin
+#+end_src
+**** Configuração
+*** Instalação de Grafana
+**** Configuração
