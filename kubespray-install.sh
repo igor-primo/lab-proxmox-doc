@@ -17,8 +17,8 @@ if [ $EXTERNAL = "y" ]; then
   source $VENVDIR/bin/activate
   cd $KUBESPRAYDIR
   pip install -U -r requirements-$ANSIBLE_VERSION.txt
-elif [ $EXTERNAL ="N" ]; then 
-  cd kubespray
+elif [ $EXTERNAL = "N" ]; then 
+  cd kubespray-2.22.0
   pip install -U -r requirements.txt
 else
   echo "Entrada inválida"

@@ -1,4 +1,5 @@
-xuapiVersion: v1
+# Arquivo: wordpress-serv.yml
+apiVersion: v1
 kind: Service
 metadata:
   name: wordpress-service

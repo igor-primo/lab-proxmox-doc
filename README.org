@@ -69,7 +69,7 @@ utilizaremos essas dependências por conveniência.
 	source $VENVDIR/bin/activate
 	cd $KUBESPRAYDIR
 	pip install -U -r requirements-$ANSIBLE_VERSION.txt
-  elif [ $EXTERNAL ="N" ]; then 
+  elif [ $EXTERNAL = "N" ]; then 
 	cd kubespray-2.22.0
 	pip install -U -r requirements.txt
   else
@@ -727,7 +727,7 @@ Vide [[https://adambcomer.com/blog/install-gitlab-runner-kubernetes/][referênci
   helm install prometheus prometheus-community/kube-prometheus-stack --namespace darwin
 #+end_src
 #+begin_src txt :tangle ./prometheus/prometheus-config.yaml
-apiVersion: apps/v1
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: prometheus-config
@@ -744,6 +744,21 @@ data:
         static_configs:
           - targets: ['darwin-service:8080']
 #+end_src
+#+begin_src txt :tangle ./prometheus/darwin-prometheus-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: darwin-prometheus-service
+  namespace: darwin
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: prometheus
+  ports:
+    - name: web
+      port: 9090
+      targetPort: 9090
+      nodePort: 30000
+#+end_src
 **** Configuração
 *** Instalação de Grafana
-**** Configuração
