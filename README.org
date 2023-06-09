@@ -726,7 +726,7 @@ Configuração do Gitlab para permitir acesso do Prometheus.
 #+begin_src sh
   kubectl create namespace darwin
   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-  helm install prometheus prometheus-community/kube-prometheus-stack --namespace darwin
+  helm install prometheus prometheus-community/kube-prometheus-stack --namespace darwin --version 46.8.0
 #+end_src
 #+begin_src txt :tangle ./prometheus/prometheus-config.yaml
 apiVersion: v1
