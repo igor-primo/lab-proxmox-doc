@@ -719,6 +719,8 @@ na seção "Assigned project runners".
 Vide [[https://adambcomer.com/blog/install-gitlab-runner-kubernetes/][referência]].
 ** Criação de pipeline CI/CD no Gitlab
 ** Configuração de Grafana
+*** Configuração do Gitlab
+Configuração do Gitlab para permitir acesso do Prometheus.
 *** Instalação de Prometheus
 **** Deploy
 #+begin_src sh
@@ -743,6 +745,50 @@ data:
         scrape_interval: 5s
         static_configs:
           - targets: ['darwin-service:8080']
+      - job_name: nginx
+        static_configs:
+          - targets:
+            - 1.1.1.1:8060
+      - job_name: redis
+        static_configs:
+          - targets:
+            - 1.1.1.1:9121
+      - job_name: postgres
+        static_configs:
+          - targets:
+            - 1.1.1.1:9187
+      - job_name: node
+        static_configs:
+          - targets:
+            - 1.1.1.1:9100
+      - job_name: gitlab-workhorse
+        static_configs:
+          - targets:
+            - 1.1.1.1:9229
+      - job_name: gitlab-rails
+        metrics_path: "/-/metrics"
+        scheme: https
+        static_configs:
+          - targets:
+            - 1.1.1.1
+      - job_name: gitlab-sidekiq
+        static_configs:
+          - targets:
+            - 1.1.1.1:8082
+      - job_name: gitlab_exporter_database
+        metrics_path: "/database"
+        static_configs:
+          - targets:
+            - 1.1.1.1:9168
+      - job_name: gitlab_exporter_sidekiq
+        metrics_path: "/sidekiq"
+        static_configs:
+          - targets:
+            - 1.1.1.1:9168
+      - job_name: gitaly
+        static_configs:
+          - targets:
+            - 1.1.1.1:9236
 #+end_src
 #+begin_src txt :tangle ./prometheus/darwin-prometheus-service.yaml
 apiVersion: v1
@@ -762,3 +808,82 @@ spec:
 #+end_src
 **** Configuração
 *** Instalação de Grafana
+**** Deployment
+#+begin_src txt :tangle ./grafana/grafana.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: grafana
+  name: grafana
+spec:
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      securityContext:
+        fsGroup: 472
+        supplementalGroups:
+          - 0
+      containers:
+        - name: grafana
+          image: grafana/grafana:9.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+              name: http-grafana
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /robots.txt
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            successThreshold: 1
+            timeoutSeconds: 2
+          livenessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            tcpSocket:
+              port: 3000
+            timeoutSeconds: 1
+          resources:
+            requests:
+              cpu: 250m
+              memory: 750Mi
+          volumeMounts:
+            - mountPath: /var/lib/grafana
+              name: grafana-data
+      volumes:
+        - name: grafana-data
+          nfs:
+            server: 10.20.9.111
+            path: /var/nfs/general/grafana-igor
+            readOnly: no
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+spec:
+  ports:
+    - port: 3000
+      protocol: TCP
+      targetPort: http-grafana
+      nodePort: 30001
+  selector:
+    app: grafana
+  sessionAffinity: None
+  type: NodePort
+#+end_src
+#+begin_src sh
+  kubectl apply -f grafana.yaml
+#+end_src
