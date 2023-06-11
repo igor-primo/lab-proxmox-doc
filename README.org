@@ -273,7 +273,7 @@ Logado em um dos master nodes (control_planes) modificar o seguinte
 arquivo de configuração para servir suas necessidades, como o caminho
 para o diretório dos arquivos da aplicação no servidor NFS.
 #+begin_src txt :tangle wordpress/mysql-dep.yml
-# Arquivo: mysql-dep.yml
+# Arquivo: ./wordpress/mysql-dep.yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -324,7 +324,7 @@ O seguinte arquivo configura o serviço para o MySQL. Caso queira, pode
 modificar a porta de acesso externo serviço do pod modificando o campo
 "targetPort".
 #+begin_src txt :tangle wordpress/mysql-serv.yml
-# Arquivo: mysql-serv.yml
+# Arquivo: ./wordpress/mysql-serv.yml
 apiVersion: v1
 kind: Service
 metadata:
@@ -346,7 +346,7 @@ Novamente, revise o seguinte arquivo de configuração do deployment
 para o Wordpress e modifique os campos que forem necessários, como o
 para os arquivos específicos do Wordpress no servidor NFS.
 #+begin_src txt :tangle wordpress/wordpress-dep.yml
-# Arquivo: wordpress-dep.yml
+# Arquivo: ./wordpress/wordpress-dep.yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -402,7 +402,7 @@ Utilize o seguinte comando para aplicar o deployment do Wordpress.
 Revise o arquivo de configuração do serviço Wordpress e modifique os
 campos que achar necessário.
 #+begin_src txt :tangle wordpress/wordpress-serv.yml
-# Arquivo: wordpress-serv.yml
+# Arquivo: ./wordpress/wordpress-serv.yml
 apiVersion: v1
 kind: Service
 metadata:
@@ -444,7 +444,7 @@ os campos necessários, como os caminhos nos volumes "gitlab-data",
 "gitlab-logs" e "gitlab-config" para servir a sua configuração. Vale
 ressaltar que os caminhos para esses volumes devem ser diferentes.
 #+begin_src txt :tangle gitlab/gitlab-dep.yml
-# Arquivo: gitlab-dep.yml
+# Arquivo: ./gitlab/gitlab-dep.yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -509,7 +509,7 @@ Execute o seguinte comando para aplicar a configuração do deployment:
 Revise o arquivo de configuração para o serviço do Gitlab e edite o
 que achar necessário.
 #+begin_src txt :tangle gitlab/gitlab-serv.yml
-# Arquivo: gitlab-serv
+# Arquivo: ./gitlab/gitlab-serv
 apiVersion: v1
 kind: Service
 metadata:
@@ -610,7 +610,7 @@ ServiceAccount, um Role e um RoleBinding respectivo ao Runner no
 cluster. O seguinte
 arquivo provê essa configuração:
 #+begin_src txt :tangle ./gitlab/gitlab-runner-authentication.yml
-# Arquivo: gitlab-runner-authentication.yml
+# Arquivo: ./gitlab/gitlab-runner-authentication.yml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -649,7 +649,7 @@ configuração do runner que roubamos do container Docker com algumas
 modificações para adaptá-lo ao ambiente Kubernetes. No meu caso,
 ficou assim:
 #+begin_src txt :tangle ./gitlab/gitlab-runner-config.yml
-# Arquivo: gitlab-runner-config.yml
+# Arquivo: ./gitlab/gitlab-runner-config.yml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -673,7 +673,7 @@ data:
 Após a aplicação dessa configuração, aplicamos a configuração do
 Deployment:
 #+begin_src txt :tangle ./gitlab/gitlab-runner-deployment.yml
-# Arquivo: gitlab-runner-deployment.yml
+# Arquivo: ./gitlab/gitlab-runner-deployment.yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -717,7 +717,7 @@ a tela Settings -> CI/CD -> Runners e checando se há um runner verde
 na seção "Assigned project runners".
 *** Referência
 Vide [[https://adambcomer.com/blog/install-gitlab-runner-kubernetes/][referência]].
-** Criação de pipeline de CI/CD no Gitlab
+* Criação de pipeline de CI/CD no Gitlab
 Pipelines de CI/CD (Continuous Integration / Continuous Delivery)
 consistem em uma série de etapas a serem realizadas para a
 disponibilização de uma nova versão de um software. Elas são uma
@@ -759,6 +759,7 @@ Configuração do Gitlab para permitir acesso do Prometheus.
   helm install prometheus prometheus-community/kube-prometheus-stack --namespace darwin --version 46.8.0
 #+end_src
 #+begin_src txt :tangle ./prometheus/prometheus-config.yaml
+# Arquivo: ./prometheus/prometheus-config.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -821,6 +822,7 @@ data:
             - 1.1.1.1:9236
 #+end_src
 #+begin_src txt :tangle ./prometheus/darwin-prometheus-service.yaml
+# Arquivo: ./prometheus/darwin-prometheus-service.yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -838,6 +840,7 @@ spec:
 #+end_src
 *** Deploy alternativo
 #+begin_src txt :tangle ./prometheus/alternative/kubernetes-prometheus/clusterRole.yaml
+# Arquivo: ./prometheus/alternative/kubernetes-prometheus/clusterRole.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -873,6 +876,7 @@ subjects:
   namespace: monitoring
 #+end_src
 #+begin_src txt :tangle ./prometheus/alternative/kubernetes-prometheus/config-map.yaml
+# Arquivo: ./prometheus/alternative/kubernetes-prometheus/config-map.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -1060,6 +1064,7 @@ data:
             - 10.20.9.116:9236
 #+end_src
 #+begin_src txt :tangle ./prometheus/alternative/kubernetes-prometheus/prometheus-deployment.yaml
+# Arquivo: ./prometheus/alternative/kubernetes-prometheus/prometheus-deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -1100,6 +1105,7 @@ spec:
           emptyDir: {}
 #+end_src
 #+begin_src txt :tangle ./prometheus/alternative/kubernetes-prometheus/prometheus-service.yaml
+# Arquivo: ./prometheus/alternative/kubernetes-prometheus/prometheus-service.yaml
 apiVersion: v1
 kind: Service
 metadata:
