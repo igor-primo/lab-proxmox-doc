@@ -1124,7 +1124,7 @@ spec:
       targetPort: 9090 
       nodePort: 30000
 #+end_src
-*** Criação de services para acessar endpoints dentro do container do Gitlab
+*** Criação de services para expor endpoints dentro do container do Gitlab
 ** Instalação de Grafana
 **** Deployment
 #+begin_src txt :tangle ./grafana/grafana.yaml
