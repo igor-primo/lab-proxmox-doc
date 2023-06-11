@@ -1,3 +1,4 @@
+#!/bin/bash
 # ./remove-firewall.sh
 (
 	# Se o diretório ./kubespray-venv existe, assuma que

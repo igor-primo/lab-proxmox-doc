@@ -32,7 +32,7 @@ Instalação de Python e Pip no host de onde partirá a instalação
 do kubernetes. O seguinte snippet instala Python e Pip em sistemas
 baseados em RPM. Caso o sistema ponto de partida não seja baseado em
 RPM, deve-se utilizar os comandos cabíveis.
-#+begin_src sh :tangle deps-install.sh
+#+begin_src sh :tangle deps-install.sh :shebang "#!/bin/bash"
   # ./deps-install.sh
   sudo dnf install python39 python3-pip -y
   pip3 install --upgrade pip
@@ -49,7 +49,7 @@ esses ambientes virtuais servem para resolver problemas de
 incompatibilidade entre versões de um mesmo software requerido em
 várias versões. Em alguns dos scripts/snippets que seguem,
 utilizaremos essas dependências por conveniência.
-#+begin_src sh :tangle kubespray-install.sh
+#+begin_src sh :tangle kubespray-install.sh :shebang "#!/bin/bash"
   # ./kubespray-install.sh
   if [ ! -d ./kubespray-2.22.0 ]; then
 	  wget https://github.com/kubernetes-sigs/kubespray/archive/refs/tags/v2.22.0.tar.gz
@@ -102,7 +102,7 @@ server1 ansible_host=10.20.1.113
 server2 ansible_host=10.20.1.115
 #+end_src
 Esse é o mini-roteiro a ser utilizado para aplicar o YAML anterior.
-#+begin_src sh :tangle update-systems.sh
+#+begin_src sh :tangle update-systems.sh :shebang "#!/bin/bash"
   # ./update-systems.sh
   (
 	  # Se o diretório ./kubespray-venv existe, assuma que
@@ -120,7 +120,7 @@ Caso os firewalls não tenham sido desabilitados, desabilitá-los.
 Esse é o playbook Ansible utilizado para instruir o Ansible para
 executar os comandos para parar e desabilitar o serviço de firewall
 nas máquinas alvo.
-#+begin_src yml :tangle remove-firewall-playbook.yaml
+#+begin_src yml :tangle remove-firewall-playbook.yaml 
 - name: Remove firewall e habilitar login de root via SSH
   hosts: server*
   become: true
@@ -131,7 +131,7 @@ nas máquinas alvo.
       systemctl disable firewalld.service
 #+end_src
 Esse é o snippet para aplicar a configuração.
-#+begin_src sh :tangle remove-firewall.sh
+#+begin_src sh :tangle remove-firewall.sh :shebang "#!/bin/bash"
   # ./remove-firewall.sh
   (
 	  # Se o diretório ./kubespray-venv existe, assuma que
@@ -535,7 +535,7 @@ apenas para registrá-lo no Gitlab. Depois descartamos o container e
 instalamos outro Runner utilizando kubectl e utilizamos a configuração
 do outro Runner, modificada, para configurar o novo Runner.
 ** Instalação do Docker
-#+begin_src sh :tangle ./install-docker.sh
+#+begin_src sh :tangle ./install-docker.sh :shebang "#!/bin/bash"
   # ./install-docker.sh
   dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
   dnf upgrade --refresh -y
@@ -717,12 +717,40 @@ a tela Settings -> CI/CD -> Runners e checando se há um runner verde
 na seção "Assigned project runners".
 *** Referência
 Vide [[https://adambcomer.com/blog/install-gitlab-runner-kubernetes/][referência]].
-** Criação de pipeline CI/CD no Gitlab
+** Criação de pipeline de CI/CD no Gitlab
+Pipelines de CI/CD (Continuous Integration / Continuous Delivery)
+consistem em uma série de etapas a serem realizadas para a
+disponibilização de uma nova versão de um software. Elas são uma
+prática que tem como objetivo acelerar a disponibilização de
+softwares, adotando a abordagem de DevOps ou de engenharia de
+confiabilidade de sites (SRE). O pipeline de CI/CD inclui o
+**monitoramento** e **automação** para melhorar o processo de
+desenvolvimento de aplicações principalmente nos estágios de
+integração e teste, mas também na entrega e na imnplantação.
+
+Como solução de **monitoramente** utilizaremos o **Grafana**. Grafana é
+uma plataforma de fonte aberta interativa de visualização de dados,
+desenvolvieda pela Grafana Labs, que permite aos usuários ver dados
+por meio de tabelas e gráficos unificados em um painel ou vários, para
+facilitar a interpretação e a compreensão. Com o Grafana pode-se
+consultar e definir alertas sobre informações e métricas de qualquer
+lugar que os dados esteja, sejam ambientes tradicionais de servidor,
+clusters do Kubernetes, etc. Grafana foi construído com base nos
+princípios open source e na crença de que os dados devem ser
+acessíveis em toda a organização, não apenas para um pequeno grupo de
+pessoas. Isso promove uma cultura em que os dados podem ser
+**facilmente encontrados e usados** por qualquer pessoa que precise
+deles, capacitando as equipes a serem mais abertas, inovadoras e colaborativas.
+
+**Prometheus** é um conjunto de ferramentas de fonte aberta para
+monitoramento de sistemas. Ele coleta e armazena suas métricas como
+dados de séries temporais, i.e., informações de métricas são
+aramazenados com o /timestamp/ em que foi gravado.
 ** Configuração de Grafana
 *** Configuração do Gitlab
 Configuração do Gitlab para permitir acesso do Prometheus.
 *** Instalação de Prometheus
-**** Deploy
+**** Deploy via Helm Charts
 #+begin_src sh
   kubectl create namespace darwin
   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts

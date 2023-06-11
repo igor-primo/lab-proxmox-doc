@@ -1,3 +1,4 @@
+#!/bin/bash
 # ./update-systems.sh
 (
 	# Se o diretório ./kubespray-venv existe, assuma que
