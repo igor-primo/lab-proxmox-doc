@@ -1,4 +1,4 @@
-# Arquivo: mysql-dep.yml
+# Arquivo: ./wordpress/mysql-dep.yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:

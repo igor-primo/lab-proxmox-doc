@@ -967,9 +967,6 @@ data:
         - source_labels: [__meta_kubernetes_pod_name]
           action: replace
           target_label: kubernetes_pod_name
-      - job_name: 'kube-state-metrics'
-        static_configs:
-          - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
       - job_name: 'kubernetes-cadvisor'
         scheme: https
         tls_config:
@@ -1014,54 +1011,41 @@ data:
         - source_labels: [__meta_kubernetes_service_name]
           action: replace
           target_label: kubernetes_name
-      - job_name: 'darwin-service'
-        scrape_interval: 5s
-        static_configs:
-          - targets: ['darwin-service:8080']
-      - job_name: nginx
-        static_configs:
-          - targets:
-            - 10.20.9.116:8060
       - job_name: redis
         static_configs:
           - targets:
-            - 10.20.9.116:9121
+            - 10.20.9.116:30091
       - job_name: postgres
         static_configs:
           - targets:
-            - 10.20.9.116:9187
+            - 10.20.9.116:30092
       - job_name: node
         static_configs:
           - targets:
-            - 10.20.9.116:9100
+            - 10.20.9.116:30086
       - job_name: gitlab-workhorse
         static_configs:
           - targets:
-            - 10.20.9.116:9229
+            - 10.20.9.116:30087
       - job_name: gitlab-rails
         metrics_path: "/-/metrics"
         scheme: https
         static_configs:
           - targets:
-            - 10.20.9.116
+            - 10.20.9.116:30036
       - job_name: gitlab-sidekiq
         static_configs:
           - targets:
-            - 10.20.9.116:8082
+            - 10.20.9.116:30090
       - job_name: gitlab_exporter_database
         metrics_path: "/database"
         static_configs:
           - targets:
-            - 10.20.9.116:9168
-      - job_name: gitlab_exporter_sidekiq
-        metrics_path: "/sidekiq"
-        static_configs:
-          - targets:
-            - 10.20.9.116:9168
+            - 10.20.9.116:30088
       - job_name: gitaly
         static_configs:
           - targets:
-            - 10.20.9.116:9236
+            - 10.20.9.116:30093
 #+end_src
 #+begin_src txt :tangle ./prometheus/alternative/kubernetes-prometheus/prometheus-deployment.yaml
 # Arquivo: ./prometheus/alternative/kubernetes-prometheus/prometheus-deployment.yaml
@@ -1119,12 +1103,81 @@ spec:
   selector: 
     app: prometheus-server
   type: NodePort  
-  ports:
+  ports:pp
     - port: 8080
       targetPort: 9090 
       nodePort: 30000
 #+end_src
 *** Criação de services para expor endpoints dentro do container do Gitlab
+Esses serviçoes poderiam ser descritos no arquvivo
+./gitlab/gitlab-serv.yaml adicionando múltiplas portas ([[https://kubernetes.io/docs/concepts/services-networking/service/#multi-port-services][Vide]]).
+
+Nota: todos os serviços de métrica são atingíveis exceto pelo
+node-exporter e gitlab-rails. O gitlab-rails precisa de configuração
+pelo dashboard e o node-exporter provavelmente não é levantado com a
+configuração minimalista entregue pela documentação do Gitlab.
+
+Att: o node-explorer pode ser habilitado descomentando
+"node_explorer['enable'] = true".
+
+Configuração para expor serviços internos do Gitlab:
+#+begin_src txt :tangle ./gitlab/services-integration-prometheus/integration-service.yaml
+# Arquivo: ./gitlab/services-integration-prometheus/integration-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: integration-service
+spec:
+  selector:
+    app: gitlab
+  type: NodePort
+  ports:
+    - name: node-exporter-metrics
+      protocol: TCP
+      port: 9100
+      targetPort: 9100
+      nodePort: 30086
+    - name: gitlab-workhorse-metrics
+      protocol: TCP
+      port: 9229
+      targetPort: 9229
+      nodePort: 30087
+    - name: gitlab-exporter-metrics
+      protocol: TCP
+      port: 9168
+      targetPort: 9168
+      nodePort: 30088
+    - name: registry-metrics
+      protocol: TCP
+      port: 5001
+      targetPort: 5001
+      nodePort: 30089
+    - name: sidekiq-metrics
+      protocol: TCP
+      port: 8082
+      targetPort: 8082
+      nodePort: 30090
+    - name: redis-exporter-metrics
+      protocol: TCP
+      port: 9121
+      targetPort: 9121
+      nodePort: 30091
+    - name: postgres-metrics
+      protocol: TCP
+      port: 9187
+      targetPort: 9187
+      nodePort: 30092
+    - name: gitaly-metrics
+      protocol: TCP
+      port: 9236
+      targetPort: 9236
+      nodePort: 30093
+    - name: pgbouncer-metrics
+      protocol: TCP
+      port: 9188
+      targetPort: 9188
+      nodePort: 30094
+#+end_src
 ** Instalação de Grafana
 **** Deployment
 #+begin_src txt :tangle ./grafana/grafana.yaml

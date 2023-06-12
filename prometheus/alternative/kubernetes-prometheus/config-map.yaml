@@ -1,3 +1,4 @@
+# Arquivo: ./prometheus/alternative/kubernetes-prometheus/config-map.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -135,30 +136,22 @@ data:
         - source_labels: [__meta_kubernetes_service_name]
           action: replace
           target_label: kubernetes_name
-      - job_name: 'darwin-service'
-        scrape_interval: 5s
-        static_configs:
-          - targets: ['darwin-service:8080']
-      - job_name: nginx
-        static_configs:
-          - targets:
-            - 10.20.9.116:8060
       - job_name: redis
         static_configs:
           - targets:
-            - 10.20.9.116:9121
+            - 10.20.9.116:30091
       - job_name: postgres
         static_configs:
           - targets:
-            - 10.20.9.116:9187
+            - 10.20.9.116:30092
       - job_name: node
         static_configs:
           - targets:
-            - 10.20.9.116:9100
+            - 10.20.9.116:30086
       - job_name: gitlab-workhorse
         static_configs:
           - targets:
-            - 10.20.9.116:9229
+            - 10.20.9.116:30087
       - job_name: gitlab-rails
         metrics_path: "/-/metrics"
         scheme: https
@@ -168,18 +161,18 @@ data:
       - job_name: gitlab-sidekiq
         static_configs:
           - targets:
-            - 10.20.9.116:8082
+            - 10.20.9.116:30090
       - job_name: gitlab_exporter_database
         metrics_path: "/database"
         static_configs:
           - targets:
-            - 10.20.9.116:9168
+            - 10.20.9.116:30088
       - job_name: gitlab_exporter_sidekiq
         metrics_path: "/sidekiq"
         static_configs:
           - targets:
-            - 10.20.9.116:9168
+            - 10.20.9.116:30090
       - job_name: gitaly
         static_configs:
           - targets:
-            - 10.20.9.116:9236
+            - 10.20.9.116:30093

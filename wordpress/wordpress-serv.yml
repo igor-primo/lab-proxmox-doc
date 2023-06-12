@@ -1,4 +1,4 @@
-# Arquivo: wordpress-serv.yml
+# Arquivo: ./wordpress/wordpress-serv.yml
 apiVersion: v1
 kind: Service
 metadata:

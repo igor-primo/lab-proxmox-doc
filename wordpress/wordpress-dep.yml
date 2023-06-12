@@ -1,4 +1,4 @@
-# Arquivo: wordpress-dep.yml
+# Arquivo: ./wordpress/wordpress-dep.yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:

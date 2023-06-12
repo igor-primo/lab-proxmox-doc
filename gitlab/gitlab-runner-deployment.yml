@@ -1,4 +1,4 @@
-# Arquivo: gitlab-runner-deployment.yml
+# Arquivo: ./gitlab/gitlab-runner-deployment.yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:

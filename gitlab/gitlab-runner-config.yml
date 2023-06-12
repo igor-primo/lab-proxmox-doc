@@ -1,4 +1,4 @@
-# Arquivo: gitlab-runner-config.yml
+# Arquivo: ./gitlab/gitlab-runner-config.yml
 apiVersion: v1
 kind: ConfigMap
 metadata:
