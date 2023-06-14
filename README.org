@@ -752,93 +752,9 @@ do Gitlab e o Grafana para tramar gráficos para visualização.
 ** Configuração do Gitlab
 Configuração do Gitlab para permitir acesso do Prometheus.
 ** Instalação de Prometheus
-*** Deploy via Helm Charts
-#+begin_src sh
-  kubectl create namespace darwin
-  helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-  helm install prometheus prometheus-community/kube-prometheus-stack --namespace darwin --version 46.8.0
-#+end_src
-#+begin_src txt :tangle ./prometheus/prometheus-config.yaml
-# Arquivo: ./prometheus/prometheus-config.yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: prometheus-config
-  namespace: darwin
-data:
-  prometheus.yml: |
-    global:
-      scrape_interval: 15s
-      scrape_timeout: 10s
-      evaluation_interval: 15s
-    scrape_configs:
-      - job_name: 'darwin-service'
-        scrape_interval: 5s
-        static_configs:
-          - targets: ['darwin-service:8080']
-      - job_name: nginx
-        static_configs:
-          - targets:
-            - 1.1.1.1:8060
-      - job_name: redis
-        static_configs:
-          - targets:
-            - 1.1.1.1:9121
-      - job_name: postgres
-        static_configs:
-          - targets:
-            - 1.1.1.1:9187
-      - job_name: node
-        static_configs:
-          - targets:
-            - 1.1.1.1:9100
-      - job_name: gitlab-workhorse
-        static_configs:
-          - targets:
-            - 1.1.1.1:9229
-      - job_name: gitlab-rails
-        metrics_path: "/-/metrics"
-        scheme: https
-        static_configs:
-          - targets:
-            - 1.1.1.1
-      - job_name: gitlab-sidekiq
-        static_configs:
-          - targets:
-            - 1.1.1.1:8082
-      - job_name: gitlab_exporter_database
-        metrics_path: "/database"
-        static_configs:
-          - targets:
-            - 1.1.1.1:9168
-      - job_name: gitlab_exporter_sidekiq
-        metrics_path: "/sidekiq"
-        static_configs:
-          - targets:
-            - 1.1.1.1:9168
-      - job_name: gitaly
-        static_configs:
-          - targets:
-            - 1.1.1.1:9236
-#+end_src
-#+begin_src txt :tangle ./prometheus/darwin-prometheus-service.yaml
-# Arquivo: ./prometheus/darwin-prometheus-service.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: darwin-prometheus-service
-  namespace: darwin
-spec:
-  type: NodePort
-  selector:
-    app.kubernetes.io/name: prometheus
-  ports:
-    - name: web
-      port: 9090
-      targetPort: 9090
-      nodePort: 30000
-#+end_src
-*** Deploy alternativo
+*** Deploy
+O seguinte arquivo cria o ClusterRole e ClusterRoleBinding para 
+
 #+begin_src txt :tangle ./prometheus/alternative/kubernetes-prometheus/clusterRole.yaml
 # Arquivo: ./prometheus/alternative/kubernetes-prometheus/clusterRole.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -1029,7 +945,7 @@ data:
             - 10.20.9.116:30087
       - job_name: gitlab-rails
         metrics_path: "/-/metrics"
-        scheme: https
+        scheme: http
         static_configs:
           - targets:
             - 10.20.9.116:30036
@@ -1179,7 +1095,7 @@ spec:
       nodePort: 30094
 #+end_src
 ** Instalação de Grafana
-**** Deployment
+*** Deployment
 #+begin_src txt :tangle ./grafana/grafana.yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -1257,4 +1173,95 @@ spec:
 #+end_src
 #+begin_src sh
   kubectl apply -f grafana.yaml
+#+end_src
+
+* Configurações alternativas
+** Deploy do Prometheus
+Para deploy do Prometheus pode-se utilizar a seguinte
+configuração. Entretanto, ela é complexa e difícil de configurar.
+*** Deploy via Helm Charts
+#+begin_src sh
+  kubectl create namespace darwin
+  helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+  helm install prometheus prometheus-community/kube-prometheus-stack --namespace darwin --version 46.8.0
+#+end_src
+#+begin_src txt :tangle ./prometheus/prometheus-config.yaml
+# Arquivo: ./prometheus/prometheus-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: darwin
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      scrape_timeout: 10s
+      evaluation_interval: 15s
+    scrape_configs:
+      - job_name: 'darwin-service'
+        scrape_interval: 5s
+        static_configs:
+          - targets: ['darwin-service:8080']
+      - job_name: nginx
+        static_configs:
+          - targets:
+            - 1.1.1.1:8060
+      - job_name: redis
+        static_configs:
+          - targets:
+            - 1.1.1.1:9121
+      - job_name: postgres
+        static_configs:
+          - targets:
+            - 1.1.1.1:9187
+      - job_name: node
+        static_configs:
+          - targets:
+            - 1.1.1.1:9100
+      - job_name: gitlab-workhorse
+        static_configs:
+          - targets:
+            - 1.1.1.1:9229
+      - job_name: gitlab-rails
+        metrics_path: "/-/metrics"
+        scheme: https
+        static_configs:
+          - targets:
+            - 1.1.1.1
+      - job_name: gitlab-sidekiq
+        static_configs:
+          - targets:
+            - 1.1.1.1:8082
+      - job_name: gitlab_exporter_database
+        metrics_path: "/database"
+        static_configs:
+          - targets:
+            - 1.1.1.1:9168
+      - job_name: gitlab_exporter_sidekiq
+        metrics_path: "/sidekiq"
+        static_configs:
+          - targets:
+            - 1.1.1.1:9168
+      - job_name: gitaly
+        static_configs:
+          - targets:
+            - 1.1.1.1:9236
+#+end_src
+#+begin_src txt :tangle ./prometheus/darwin-prometheus-service.yaml
+# Arquivo: ./prometheus/darwin-prometheus-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: darwin-prometheus-service
+  namespace: darwin
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: prometheus
+  ports:
+    - name: web
+      port: 9090
+      targetPort: 9090
+      nodePort: 30000
 #+end_src
