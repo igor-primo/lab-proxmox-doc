@@ -753,17 +753,19 @@ do Gitlab e o Grafana para tramar gráficos para visualização.
 Configuração do Gitlab para permitir acesso do Prometheus.
 ** Instalação de Prometheus
 *** Deploy
-O seguinte arquivo cria o ClusterRole e ClusterRoleBinding para 
+O seguinte arquivo cria o ClusterRole e ClusterRoleBinding para
+configurar o mecanismo de [[https://kubernetes.io/docs/reference/access-authn-authz/rbac/][autorização]] para o Prometheus acessar
+recursos protegidos do Kubernetes.
 
 #+begin_src txt :tangle ./prometheus/alternative/kubernetes-prometheus/clusterRole.yaml
 # Arquivo: ./prometheus/alternative/kubernetes-prometheus/clusterRole.yaml
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: ClusterRole # contem regras que representam um conjunto de permissoes
 metadata:
   name: prometheus
 rules:
-- apiGroups: [""]
-  resources:
+- apiGroups: [""] # "" indica o grupo de API base
+  resources:      # especifica os recursos suplicados
   - nodes
   - nodes/proxy
   - services
@@ -779,7 +781,7 @@ rules:
   verbs: ["get"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: ClusterRoleBinding # concede as permissoes definidas em um papel para um usuario ou conjunto de usuarios
 metadata:
   name: prometheus
 roleRef:
