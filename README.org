@@ -465,7 +465,7 @@ spec:
         env:
         - name: GITLAB_OMNIBUS_CONFIG
           value: |
-            external_url 'http://localhost'
+            external_url 'http://localhost' # Esse endereco deve ser o IP apontado pelo campo cluster-ip
         ports:
         - containerPort: 80
         volumeMounts:
