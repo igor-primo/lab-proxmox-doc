@@ -188,17 +188,28 @@ Os seguintes passos, que são os mais importantes, devem ser executados manualme
 #+end_src
 Mais detalhes são documentados no repositório oficial do [[https://github.com/kubernetes-sigs/kubespray][Kubespray]].
 * Instalação do Wordpress + MySQL
+Terminologia:
+- Deployment :: Componente que fornece atualizações declarativas para
+  Pods e ReplicaSets. O propósito de um ReplicaSet é manter um
+  conjunto estável de réplicas de Pods executando em um dado
+  momento. O ReplicaSet cumpre o seu propósito criando e deletando
+  Pods quando necessário para atingir o número desejado de Pods. O
+  Deployment cria ReplicaSets que criam Pods replicados.
+- Service :: É um método para expor uma aplicação de rede que está
+  sendo exectuado como um ou mais Pods no cluster.
+
 Os passos utilizados para instalação do Wordpress e MySQL consistem
 na aplicação de um [[https://kubernetes.io/docs/concepts/workloads/controllers/deployment/][deployment]] e de um [[https://kubernetes.io/docs/concepts/services-networking/service/][service]] para cada
 componente. Cada deployment possuirá também uma configuração para
 utilizar um servidor NFS como armazenamento persistente, com o intuito
 de preservar a configuração das aplicações e dos dados do banco de dados entre
-possíveis deployments (ex.: um nó é desligo ou cai).
-Também possuirá uma configuração que especifica uma [[https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/][toleration]], i.e.,
+possíveis deployments (ex.: um nó é desligado ou cai).
+Também possuirá uma configuração que especifica uma [[https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/][toleration]], nesse caso,
 um espaço de tempo que um container permanecerá atrelado a um nó
 enquanto uma taint for verificada, por exemplo, quando a taint
-not-ready estiver verificada quando o nó estiver fora do ar. Para mais
-detalhes sobre o que esses termos significam, vide a documentação
+not-ready estiver verificada quando o nó estiver fora do ar.
+
+Para mais detalhes sobre o que esses termos significam, vide a documentação
 referenciada nos links nesse parágrafo.
 ** Instalação do servidor NFS
 Antes de tudo, executamos o seguinte roteiro para criar um servidor
