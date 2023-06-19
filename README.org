@@ -189,6 +189,10 @@ Os seguintes passos, que são os mais importantes, devem ser executados manualme
 Mais detalhes são documentados no repositório oficial do [[https://github.com/kubernetes-sigs/kubespray][Kubespray]].
 * Instalação do Wordpress + MySQL
 Terminologia:
+- Node :: Máquinas físicas ou virtuais que executam Pods.
+- Pod :: Um Pod é um grupo de um ou mais contêineres, com
+  armazenamento e recursos de rede compartilhados, e uma
+  especificação de como executar os contêineres.
 - Deployment :: Componente que fornece atualizações declarativas para
   Pods e ReplicaSets. O propósito de um ReplicaSet é manter um
   conjunto estável de réplicas de Pods executando em um dado
@@ -196,7 +200,21 @@ Terminologia:
   Pods quando necessário para atingir o número desejado de Pods. O
   Deployment cria ReplicaSets que criam Pods replicados.
 - Service :: É um método para expor uma aplicação de rede que está
-  sendo exectuado como um ou mais Pods no cluster.
+  sendo exectuado como um ou mais Pods no cluster. É necessário porque
+  apesar de um IP ser atribuído a um Pod pelos plugins de rede nativos
+  do Kubernetes, Pods são componentes efêmeros, podendo ser destruídos
+  e reconstruídos por Deployments, o que pode modificar seus
+  IPs. Services servem para atrelar um IP fixo de acesso aos serviços nos
+  Pods.
+- Toleration e Taint :: "Tolerations" e "Taints" são termos
+  relacionados ao conceito de afinidade de nó, que é uma propriedade
+  de Pods que os "atrai" para um conjunto de nós, seja como
+  preferência ou exclusividade. Taints são propriedades de Pods que os
+  repelem de um conjunto de nós. Tolerations especificam condições de
+  tolerância para a permanência de um Pod em um nó. Pode-se
+  especificar condições de memória, processamento ou rede. Quando
+  essas condições de tolerância são ultrapassadas, o Pod possuindo a
+  tolerância é reagendado para outro nó.
 
 Os passos utilizados para instalação do Wordpress e MySQL consistem
 na aplicação de um [[https://kubernetes.io/docs/concepts/workloads/controllers/deployment/][deployment]] e de um [[https://kubernetes.io/docs/concepts/services-networking/service/][service]] para cada
@@ -224,7 +242,12 @@ NFS. No host onde o servidor NFS será hospedado, executar, como raiz:
   # Exemplo: HOSTS=(10.20.1.113 10.20.1.118)
   # Exportamos a variável para podermos utilizar essa variável em outros momentos, caso cabível.
   export HOSTS=()
-  
+
+  # O seguinte laço estabelece o ponto de montagem com permissões e configurações para o IP respectivo.
+  # rw: permissões de leitura e escrita
+  # no_subtree_check: desativa checagens que o servidor faz para ter certeza de que o cliente está acessando
+  #   um arquivo/diretório dentro do diretório exportado. Melhora performance.
+  # no_root_squash: permite que o cliente root leia e escreva arquivos como usuário root
   for i in "${HOSTS[@]}"; do echo "/var/nfs/general $i(rw,no_subtree_check,no_root_squash)" >> /etc/exports;done
 
   systemctl enable nfs-server
@@ -290,6 +313,8 @@ ações do kubernetes pode-se utilizar esses comandos:
   # Para ver os detalhes de todos os comandos possívels
   kubectl --help | less
 #+end_src
+Para mais detalhes sobre as possibilidades de comandos, vide o
+[[https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/][cheat sheet]].
 ** Aplicação do Deployment do MySQL
 Logado em um dos master nodes (control_planes) modificar o seguinte
 arquivo de configuração para servir suas necessidades, como o caminho
@@ -343,7 +368,7 @@ Depois execute o seguinte comando para levantar o deployment do MySQL.
 #+end_src
 ** Aplicação do Service do MySQL
 O seguinte arquivo configura o serviço para o MySQL. Caso queira, pode
-modificar a porta de acesso externo serviço do pod modificando o campo
+modificar a porta de acesso externo serviço do Pod modificando o campo
 "targetPort".
 #+begin_src txt :tangle wordpress/mysql-serv.yml
 # Arquivo: ./wordpress/mysql-serv.yml
@@ -364,7 +389,7 @@ Utilize o seguinte comando para aplicar a configuração do serviço MySQL.
   kubectl apply -f mysql-serv.yml
 #+end_src
 ** Aplicação do Deployment do Wordpress
-Novamente, revise o seguinte arquivo de configuração do deployment
+Novamente, revise o seguinte arquivo de configuração do Deployment
 para o Wordpress e modifique os campos que forem necessários, como o
 para os arquivos específicos do Wordpress no servidor NFS.
 #+begin_src txt :tangle wordpress/wordpress-dep.yml
@@ -1198,7 +1223,8 @@ spec:
 #+begin_src sh
   kubectl apply -f grafana.yaml
 #+end_src
-
+Para fazer login na sua instância do Grafana, utilize como credênciais
+'admin' para usuário e 'admin' para senha.
 * Configurações alternativas
 ** Deploy do Prometheus
 Para deploy do Prometheus pode-se utilizar a seguinte
@@ -1289,3 +1315,4 @@ spec:
       targetPort: 9090
       nodePort: 30000
 #+end_src
+
