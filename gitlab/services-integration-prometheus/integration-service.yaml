@@ -30,8 +30,8 @@ spec:
       nodePort: 30089
     - name: sidekiq-metrics
       protocol: TCP
-      port: 9168
-      targetPort: 9168
+      port: 8082
+      targetPort: 8082
       nodePort: 30090
     - name: redis-exporter-metrics
       protocol: TCP

@@ -8,7 +8,8 @@ que contém o snippet respectivo está em um comentário na primeira
 linha do snippet. 
 
 Todos os scripts e comandos devem
-ser executados como usuário raiz.
+ser executados como usuário raiz. Recomenda-se que se utilize uma
+máquina exterior ao cluster para fazer a instalação.
 
 O login de usuário root via SSH deve
 estar habilitado também.
@@ -17,12 +18,19 @@ A clonagem das VMs é feita através do ProxMox manualmente.
 * SSH
 Criação de chaves assimétricas para acesso SSH sem senha. Esse passo deve ser
 feito manualmente.
-** Cria chaves assimétricas
+** Criação das chaves assimétricas
 #+begin_src sh
-  # A variável HOSTS deve conter os IPs dos hosts da instalação do cluster.
+  # A variável HOSTS deve conter os IPs dos hosts da instalação do cluster
+  # separados por um espaço.
   # Exemplo: HOSTS=(10.20.1.123 10.20.1.124)
   HOSTS=()
   # Gera uma chave RSA
+  # Explicação para as bandeiras para o programa ssh-keygen
+  # -q: modo silencioso
+  # -t: especifica o tipo de chave a ser criada
+  # -b: especifica o número de bits na chave a ser criada
+  # -f: especifica o nome do arquivo do arquivo da chave
+  # -P: especifica a senha antiga
   ssh-keygen -q -t rsa -b 4096 -f ~/.ssh/id_rsa -P ""
   # Copia a chave pública correspondente para os hospedeiros remotos
   for HOST in "${HOSTS[@]}"; do ssh-copy-id $USER@$HOST; done
@@ -40,11 +48,11 @@ RPM, deve-se utilizar os comandos cabíveis.
 * Clonar repositório do Kubespray e instalar dependências.
 Caso a instalação esteja partindo de uma máquina exterior ao cluster,
 pode-se utilizar o seguinte script; mas se a instalação estiver
-partindo de um dos nós do cluster, deve-se omitir a instalação do do
+partindo de um dos nós do cluster, deve-se omitir a instalação do
 ambiente virtual Python.
 
 O script abaixo instala as dependências Python do Kubespray no
-diretório /tmp/repos/kubespray-venv. Segundo a [[https://docs.python.org/3/library/venv.html][documentação]] do Python,
+diretório ./kubespray-venv. Segundo a [[https://docs.python.org/3/library/venv.html][documentação]] do Python,
 esses ambientes virtuais servem para resolver problemas de
 incompatibilidade entre versões de um mesmo software requerido em
 várias versões. Em alguns dos scripts/snippets que seguem,
@@ -61,7 +69,6 @@ utilizaremos essas dependências por conveniência.
   read -p "A instalação do cluster parte de uma máquina externa ao cluster? (y/N)" EXTERNAL
   if [ $EXTERNAL = "y" ]; then
 	pip install virtualenv
-
 	VENVDIR=kubespray-venv
 	KUBESPRAYDIR=kubespray-2.22.0
 	ANSIBLE_VERSION=2.12
@@ -77,8 +84,8 @@ utilizaremos essas dependências por conveniência.
   fi
   #+end_src
 * Atualizar sistemas
-Caso não tenha sido feito ou precisa fazer novamente, atualizar os
-sistemas operacionais. Esse script depende da existência dos arquivos
+Caso julgue necessário, atualizar os sistemas operacionais.
+Esse script depende da existência dos arquivos
 "inventory.ini" e "update-systems-playbook.yaml" que são providos
 nesse repositório.
 
@@ -105,9 +112,9 @@ Esse é o mini-roteiro a ser utilizado para aplicar o YAML anterior.
 #+begin_src sh :tangle update-systems.sh :shebang "#!/bin/bash"
   # ./update-systems.sh
   (
-	  # Se o diretório ./kubespray-venv existe, assuma que
+	  # Se o diretório ./kubespray-venv existe, assume que
 	  # a instalação parte de uma máquina exterior ao cluster
-	  # e carregue as variáveis do ambiente virtual
+	  # e carrega as variáveis do ambiente virtual
 	  if [ -d ./kubespray-venv ]; then
 		  source ./kubespray-venv/bin/activate
 	  fi
@@ -120,6 +127,9 @@ Caso os firewalls não tenham sido desabilitados, desabilitá-los.
 Esse é o playbook Ansible utilizado para instruir o Ansible para
 executar os comandos para parar e desabilitar o serviço de firewall
 nas máquinas alvo.
+
+Esse playbook utiliza o inventário mencionado na seção anterior,
+portanto ele deve estar atualizado com os IPs das máquianas alvo.
 #+begin_src yml :tangle remove-firewall-playbook.yaml 
 - name: Remove firewall e habilitar login de root via SSH
   hosts: server*
@@ -143,8 +153,8 @@ Esse é o snippet para aplicar a configuração.
 	  ansible-playbook -i inventory.ini remove-firewall-playbook.yaml --become --become-user=root
   )
 #+end_src
-* Próximos passos
-Próximos passos são documentados no repositório oficial do [[https://github.com/kubernetes-sigs/kubespray][Kubespray]].
+* Instalação do Kubernetes
+A instalação do Kubernetes pode ser feita seguindo o seguinte snippet.
 Mas há algumas ressalvas. A instalação utilizando ambientes virtuais
 do Python quando a instalação é feita a partir de uma máquina que será
 um nó do cluster apresenta erros na busca de dependências do python.
@@ -176,6 +186,7 @@ Os seguintes passos, que são os mais importantes, devem ser executados manualme
   # Para fazer uma nova instalação do kubernetes, executar como root:
   ansible-playbook -i inventory/mycluster/hosts.yaml --become --become-user=root cluster.yml
 #+end_src
+Mais detalhes são documentados no repositório oficial do [[https://github.com/kubernetes-sigs/kubespray][Kubespray]].
 * Instalação do Wordpress + MySQL
 Os passos utilizados para instalação do Wordpress e MySQL consistem
 na aplicação de um [[https://kubernetes.io/docs/concepts/workloads/controllers/deployment/][deployment]] e de um [[https://kubernetes.io/docs/concepts/services-networking/service/][service]] para cada

@@ -89,9 +89,6 @@ data:
         - source_labels: [__meta_kubernetes_pod_name]
           action: replace
           target_label: kubernetes_pod_name
-      - job_name: 'kube-state-metrics'
-        static_configs:
-          - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
       - job_name: 'kubernetes-cadvisor'
         scheme: https
         tls_config:
@@ -154,10 +151,10 @@ data:
             - 10.20.9.116:30087
       - job_name: gitlab-rails
         metrics_path: "/-/metrics"
-        scheme: https
+        scheme: http
         static_configs:
           - targets:
-            - 10.20.9.116
+            - 10.20.9.116:30036
       - job_name: gitlab-sidekiq
         static_configs:
           - targets:
@@ -167,11 +164,6 @@ data:
         static_configs:
           - targets:
             - 10.20.9.116:30088
-      - job_name: gitlab_exporter_sidekiq
-        metrics_path: "/sidekiq"
-        static_configs:
-          - targets:
-            - 10.20.9.116:30090
       - job_name: gitaly
         static_configs:
           - targets:
