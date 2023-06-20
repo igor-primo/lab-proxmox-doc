@@ -19,7 +19,8 @@ spec:
         env:
         - name: GITLAB_OMNIBUS_CONFIG
           value: |
-            external_url 'http://localhost' # Esse endereco deve ser o IP apontado pelo campo cluster-ip
+            external_url 'http://localhost'
+# O endereco external_url deve ser o IP apontado pelo campo cluster-ip na saída do comando kubectl get svc -o wide
         ports:
         - containerPort: 80
         volumeMounts:

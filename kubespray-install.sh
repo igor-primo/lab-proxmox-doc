@@ -10,7 +10,6 @@ EXTERNAL=""
 read -p "A instalação do cluster parte de uma máquina externa ao cluster? (y/N)" EXTERNAL
 if [ $EXTERNAL = "y" ]; then
   pip install virtualenv
-
   VENVDIR=kubespray-venv
   KUBESPRAYDIR=kubespray-2.22.0
   ANSIBLE_VERSION=2.12
