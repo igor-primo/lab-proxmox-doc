@@ -1314,6 +1314,26 @@ Utilize o seguinte comando para aplicar a configuração.
 #+end_src
 Para fazer login na sua instância do Grafana, utilize como credênciais
 'admin' para usuário e 'admin' para senha.
+* Visualização de dashboards no Grafana
+** Criação de um Data Source
+1) Acesse a interface Web da sua instância do grafana utilizando um
+navegador de Internet.
+2) Procure pelo símbolo de configuração e clique em 'Data sources'.
+3) Clique em 'Add data source'.
+4) Escolha o banco de dados Prometheus.
+5) Preencha como nome do Data Source 'GitLab Omnibus'.
+6) Forneça a URL para a instância do Prometheus (Como utilizamos
+   exposição via nodePort o host pode ser qualquer host do cluster).
+7) Clique 'Save & test'.
+** Importação de Dashboards do Gitlab
+Na tela principal do Grafana, vá para a página de gerenciamento de
+Dashboards.
+1) Clique em 'New'.
+2) Clique me 'Import'.
+3) Clique em 'Upload JSON file'.
+4) Navegue até o diretório
+   lab-proxmox/gitlab/dashboards/grafana-dashboards-master/omnibus/
+5) Escolha o Dashboard que você deseja visualizar. Por exemplo, gitaly.json.
 * Configurações alternativas
 ** Deploy do Prometheus
 Para deploy do Prometheus pode-se utilizar a seguinte
