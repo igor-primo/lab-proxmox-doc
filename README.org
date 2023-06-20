@@ -187,6 +187,9 @@ Os seguintes passos, que são os mais importantes, devem ser executados manualme
   ansible-playbook -i inventory/mycluster/hosts.yaml --become --become-user=root cluster.yml
 #+end_src
 Mais detalhes são documentados no repositório oficial do [[https://github.com/kubernetes-sigs/kubespray][Kubespray]].
+* Documentação extendida
+Para mais detalhes sobre conceitos do Kubernetes, vide a
+[[https://kubernetes.io/pt-br/docs/concepts/overview/working-with-objects/kubernetes-objects/#descrevendo-um-objeto-kubernetes][documentação oficial]].
 * Instalação do Wordpress + MySQL
 Terminologia:
 - Node :: Máquinas físicas ou virtuais que executam Pods.
@@ -319,6 +322,17 @@ Para mais detalhes sobre as possibilidades de comandos, vide o
 Logado em um dos master nodes (control_planes) modificar o seguinte
 arquivo de configuração para servir suas necessidades, como o caminho
 para o diretório dos arquivos da aplicação no servidor NFS.
+
+No seguinte arquivo de configuração instruímos o Deployment para gerar
+1 réplica de Pod identificado pela [[https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/][Label]] 'app=mysql'. O campo 'spec'
+mais aninhado especifica a imagem a ser utilizada pelo contêiner,
+as variáveis de ambiente para o contêiner, a porta do serviço do
+contêiner e os pontos de montagem de volume. O campo 'volumes'
+especifica o tipo de volume que utilizaremos, nesse caso, um servidor
+NFS. O campo 'tolerations' especifica condições para o Pod ser
+reagendado para outro nó. Nesse caso, quando o nó apresenta as
+condições 'not-ready' ou 'unreachable', o Pod deve ser reagendado,
+observando uma tolerância de 30 segundos para essas condições.
 #+begin_src txt :tangle wordpress/mysql-dep.yml
 # Arquivo: ./wordpress/mysql-dep.yml
 apiVersion: apps/v1
@@ -370,6 +384,14 @@ Depois execute o seguinte comando para levantar o deployment do MySQL.
 O seguinte arquivo configura o serviço para o MySQL. Caso queira, pode
 modificar a porta de acesso externo serviço do Pod modificando o campo
 "targetPort".
+
+A seguinte configuração especifica um [[https://kubernetes.io/docs/concepts/services-networking/service/][Service]] para expor os recursos
+do servidor MySQL para outros Pods no cluster. A identificação do Pod
+é feito pelo campo 'selector', que aponta para o objeto com label
+'app=mysql'. O campo 'ports' especifica a porta de entrada para o
+serviço do Pod. O 'port' é a porta utilizada pelos clientes, como
+outros Pods no cluster, e 'targetPort' é a porta alvo, a porta onde o
+Pod exposto está de fato escutando.
 #+begin_src txt :tangle wordpress/mysql-serv.yml
 # Arquivo: ./wordpress/mysql-serv.yml
 apiVersion: v1
@@ -448,6 +470,9 @@ Utilize o seguinte comando para aplicar o deployment do Wordpress.
 ** Aplicação do Service do Wordpress
 Revise o arquivo de configuração do serviço Wordpress e modifique os
 campos que achar necessário.
+
+O campo 'nodePort' no campo 'ports' especifica a porta pela qual
+clientes fora do cluster podem acessar o serviço exposto pelo Pod do Wordpress.
 #+begin_src txt :tangle wordpress/wordpress-serv.yml
 # Arquivo: ./wordpress/wordpress-serv.yml
 apiVersion: v1
@@ -512,7 +537,8 @@ spec:
         env:
         - name: GITLAB_OMNIBUS_CONFIG
           value: |
-            external_url 'http://localhost' # Esse endereco deve ser o IP apontado pelo campo cluster-ip
+            external_url 'http://localhost'
+# O endereco external_url deve ser o IP apontado pelo campo cluster-ip na saída do comando kubectl get svc -o wide
         ports:
         - containerPort: 80
         volumeMounts:
@@ -651,11 +677,11 @@ e proceder para os próximos passos. Podemos também parar o serviço Docker:
 #+begin_src sh
 systemctl stop docker
 #+end_src
-*** Configurar o Gitlab Runner do Kubernetes
+*** Configurar o Gitlab Runner no Kubernetes
 Para configurar o Gitlab Runner, precisamos adicionar um
-ServiceAccount, um Role e um RoleBinding respectivo ao Runner no
-cluster. O seguinte
-arquivo provê essa configuração:
+[[https://kubernetes.io/docs/concepts/security/service-accounts/][ServiceAccount]], um Role e um RoleBinding respectivo ao Runner no
+cluster para gerenciar as permissões do Runner.
+O seguinte arquivo provê essa configuração:
 #+begin_src txt :tangle ./gitlab/gitlab-runner-authentication.yml
 # Arquivo: ./gitlab/gitlab-runner-authentication.yml
 apiVersion: v1
@@ -797,7 +823,53 @@ aramazenados com o /timestamp/ em que foi gravado.
 Em nossa solução, utilizaremos o Prometheus para coletar as métricas
 do Gitlab e o Grafana para tramar gráficos para visualização.
 ** Configuração do Gitlab
-Configuração do Gitlab para permitir acesso do Prometheus.
+Para que o Prometheus possa rastrear as métricas do Gitlab precisamos
+primeiro expor os serviços exportadores de métricas no Gitlab. Para
+isso, editamos os arquivo '/etc/gitlab/gitlab.rb' no contêiner do
+Gitlab. Para facilitar esse processo podemos ao invés disso editar o
+arquivo, no servidor NFS, '/var/nfs/general/gitlab/config/gitalb.rb',
+que para você pode ser um caminho diferente a depender de onde
+você especificou o ponto de montagem no arquivo de Deployment do
+Gitlab.
+
+Você deve abrir o arquivo com um editor de texto, descomentar e
+editar as linhas correspondes para ficar assim:
+#+begin_src txt
+gitlab_rails['monitoring_whitelist'] = ['127.0.0.0/8', '::1/128', '0.0.0.0/0']
+registry['debug_addr'] = "0.0.0.0:5001"
+gitlab_workhorse['prometheus_listen_addr'] = "0.0.0.0:9229"
+sidekiq['listen_address'] = "0.0.0.0"
+gitlab_rails['gitlab_kas_enabled'] = true
+gitlab_rails['gitlab_kas_external_url'] = 'ws://gitlab.example.com/-/kubernetes-agent/'
+gitlab_rails['gitlab_kas_internal_url'] = 'grpc://localhost:8153'
+gitlab_rails['gitlab_kas_external_k8s_proxy_url'] = 'https://gitlab.example.com/-/kubernetes-agent/k8s-proxy/'
+gitlab_kas_external_url "ws://gitlab.example.com/-/kubernetes-agent/"
+gitlab_kas['enable'] = true
+gitlab_kas['private_api_listen_address'] = 'localhost:8155'
+gitlab_kas['env'] = {
+  'SSL_CERT_DIR' => "/opt/gitlab/embedded/ssl/certs/",
+  'OWN_PRIVATE_API_URL' => 'grpc://localhost:8155'
+}
+gitlab_rails['prometheus_address'] = '127.0.0.1:9090'
+node_exporter['enable'] = true
+node_exporter['listen_address'] = '0.0.0.0:9100'
+redis_exporter['listen_address'] = '0.0.0.0:9121'
+postgres_exporter['listen_address'] = '0.0.0.0:9187'
+pgbouncer_exporter['listen_address'] = '0.0.0.0:9188'
+gitlab_exporter['listen_address'] = '0.0.0.0'
+gitlab_exporter['listen_port'] = '9168'
+gitaly['configuration'] = {
+  prometheus_listen_addr: '0.0.0.0:9236',
+}
+#+end_src
+Depois disso você deve reconfigurar e reiniciar o contêiner do
+Gitlab. Para isso, num nó control-plane (master) execute:
+#+begin_src sh
+  # Para pegar pegar o nome do pod do Gitlab:
+  kubectl get pod
+  # Para reconfigurar e reiniciar:
+  kubectl exec -it <GITLAB_POD_NAME> -- /bin/bash -c 'gitlab-ctl reconfigure ; gitlab-ctl restart'
+#+end_src
 ** Instalação de Prometheus
 *** Deploy
 O seguinte arquivo cria o ClusterRole e ClusterRoleBinding para
