@@ -601,6 +601,11 @@ Execute o seguinte comando para aplicar a configuração:
 #+begin_src sh
   kubectl apply -f gitlab-serv.yml
 #+end_src
+Para configurar uma senha para o usuário raíz:
+#+begin_src sh
+  kubectl exec -it <GITLAB_POD_NAME> -- /bin/bash -c "gitlab-rake 'gitlab:password:reset[root]'"
+  kubectl exec -it <GITLAB_POD_NAME> -- /bin/bash -c "gitlab-ctl reconfigure"
+#+end_src
 * Instalação de um Runner no Gitlab
 Antes de de fato instalarmos o Runner do Gitlab, precisamos
 registrá-lo no Gitlab. Para isso, instalamos o Runner num container Docker
