@@ -924,7 +924,12 @@ Aplicação da configuração:
   kubectl apply -f clusterRole.yaml
 #+end_src
 O seguinte arquivo especifica a configuração base do Prometheus e os
-'targets', isto é, as endpoints aonde o Prometheus buscará as métricas.
+'targets', isto é, as endpoints aonde o Prometheus buscará as
+métricas.
+Primeiro, crie o namespace 'monitoring':
+#+begin_src sh
+  kubectl create namespace monitoring
+#+end_src
 #+begin_src txt :tangle ./prometheus/alternative/kubernetes-prometheus/config-map.yaml
 # Arquivo: ./prometheus/alternative/kubernetes-prometheus/config-map.yaml
 apiVersion: v1
