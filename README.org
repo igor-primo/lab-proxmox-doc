@@ -190,7 +190,22 @@ Mais detalhes são documentados no repositório oficial do [[https://github.com/
 * Documentação extendida
 Para mais detalhes sobre conceitos do Kubernetes, vide a
 [[https://kubernetes.io/pt-br/docs/concepts/overview/working-with-objects/kubernetes-objects/#descrevendo-um-objeto-kubernetes][documentação oficial]].
-* Instalação do Wordpr'ess + MySQL
+
+Os arquivos de manifesto YAML, que utilizaremos a seguir, são extensos e seus campos difíceis de
+se entender pelos seus nomes. Para fazer consultas rápidas e singelas
+sobre os campos dos manifestos, pode-se utilizar o seguinte comando
+em um nó master:
+#+begin_src sh
+  kubectl explain <COMPONENT>
+#+end_src
+Por exemplo:
+#+begin_src sh
+  kubectl explain deployment
+  kubectl explain pod
+  kubectl explain pod.spec
+  kubectl explain pod.spec.tolerations
+#+end_src
+* Instalação do Wordpress + MySQL
 Terminologia:
 - Node :: Máquinas físicas ou virtuais que executam Pods.
 - Pod :: Um Pod é um grupo de um ou mais contêineres, com
