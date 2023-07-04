@@ -555,7 +555,9 @@ os campos necessários, como os caminhos nos volumes "gitlab-data",
 ressaltar que os caminhos para esses volumes devem ser diferentes. A
 variável de ambiente GITLAB_OMNIBUS_CONFIG deve ter como valor o IP no
 campo "cluster-ip" da saída do comando "kubectl get svc -o wide" para
-o serviço do Gitlab que foi aplicado na seção anterior.
+o serviço do Gitlab que foi aplicado na seção anterior. Esse endereço
+será utilizado pelo GitLab Runner para clonar seus repositórios
+durante uma pipeline CI/CD.
 #+begin_src txt :tangle gitlab/gitlab-dep.yml
 # Arquivo: ./gitlab/gitlab-dep.yml
 apiVersion: apps/v1
@@ -628,7 +630,7 @@ Para configurar uma senha para o usuário raíz:
 Antes de de fato instalarmos o Runner do Gitlab, precisamos
 registrá-lo no Gitlab. Para isso, instalamos o Runner num container Docker
 apenas para registrá-lo no Gitlab. Depois descartamos o container e
-instalamos outro Runner utilizando kubectl e utilizamos a configuração
+instalamos outro Runner utilizando kubectl e um manifesto e utilizamos a configuração
 do outro Runner, modificada, para configurar o novo Runner.
 ** Instalação do Docker
 #+begin_src sh :tangle ./install-docker.sh :shebang "#!/bin/bash"
@@ -651,7 +653,18 @@ no nosso caso deve utilizar a plataforma Linux e deve ser configurado
 para executar trabalhados sem tag acionando o checkbox "Run untagged
 jobs".
 
-Você será direcionado para uma tela onde constará o token gerado.
+Ao adicionar o Runner você pode encontrar um erro de conexão. Isso
+porque o Gitlab utiliza o URL armazenado na variável de ambiente
+GITLAB_OMNIBUS_CONFIG, que aponta para o IP fixo de cluster do Gitlab,
+que não é o IP que utilizamos para expor o serviço do Gitlab para fora
+do cluster, i.e., o IP de algum dos nós do cluster. Modificar o IP
+armazenado nessa variável de ambiente para apontar para algum nó do
+cluster resulta em erro ao tentar acessar a interface Web do
+Gitlab.
+
+Como workaround temporário, você pode simplesmente colocar na
+URL da página de erro o IP e a porta adequados para acessar o Gitlab,
+preservando os outros elementos da URL.
 *** Registrar
 Volte para o shell logado no container Docker e execute:
 #+begin_src sh
