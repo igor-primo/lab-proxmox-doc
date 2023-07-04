@@ -510,11 +510,37 @@ A partir de control_plane logar no container:
   exit
 #+end_src
 * Instalação do Gitlab
+** Aplicação do Service para o Gitlab
+Revise o arquivo de configuração para o serviço do Gitlab e edite o
+que achar necessário.
+#+begin_src txt :tangle gitlab/gitlab-serv.yml
+# Arquivo: ./gitlab/gitlab-serv
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitlab-service
+spec:
+  selector:
+    app: gitlab
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 30036 
+#+end_src
+Execute o seguinte comando para aplicar a configuração:
+#+begin_src sh
+  kubectl apply -f gitlab-serv.yml
+#+end_src
 ** Aplicação do Deployment para o Gitlab
 Revise o arquivo de configuração do deployment para o Gitlab e edite
 os campos necessários, como os caminhos nos volumes "gitlab-data",
 "gitlab-logs" e "gitlab-config" para servir a sua configuração. Vale
-ressaltar que os caminhos para esses volumes devem ser diferentes.
+ressaltar que os caminhos para esses volumes devem ser diferentes. A
+variável de ambiente GITLAB_OMNIBUS_CONFIG deve ter como valor o IP no
+campo "cluster-ip" da saída do comando "kubectl get svc -o wide" para
+o serviço do Gitlab que foi aplicado na seção anterior.
 #+begin_src txt :tangle gitlab/gitlab-dep.yml
 # Arquivo: ./gitlab/gitlab-dep.yml
 apiVersion: apps/v1
@@ -578,29 +604,6 @@ Execute o seguinte comando para aplicar a configuração do deployment:
 #+begin_src sh
   kubectl apply -f gitlab-dep.yml
 #+end_src
-** Aplicação do Service para o Gitlab
-Revise o arquivo de configuração para o serviço do Gitlab e edite o
-que achar necessário.
-#+begin_src txt :tangle gitlab/gitlab-serv.yml
-# Arquivo: ./gitlab/gitlab-serv
-apiVersion: v1
-kind: Service
-metadata:
-  name: gitlab-service
-spec:
-  selector:
-    app: gitlab
-  type: NodePort
-  ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 80
-      nodePort: 30036 
-#+end_src
-Execute o seguinte comando para aplicar a configuração:
-#+begin_src sh
-  kubectl apply -f gitlab-serv.yml
-#+end_src
 Para configurar uma senha para o usuário raíz:
 #+begin_src sh
   kubectl exec -it <GITLAB_POD_NAME> -- /bin/bash -c "gitlab-rake 'gitlab:password:reset[root]'"
@@ -641,6 +644,8 @@ gitlab-runner register --url <CAMINHO_PARA_O_CLUSTER> --token <TOKEN_GERADO>
 #+end_src
 O CAMINHO_PARA_O_CLUSTER é o IP para qualquer nó do cluster (ex.:
 http://10.20.9.116:30036).
+Você receberá um prompt para entregar algumas informações. O nome do
+runner fica a seu critério e o executor deve ser "kubernetes".
 Você pode visualizar o arquivo de configuração, gerado
 automaticamente, do Runner com o comando:
 #+begin_src sh
