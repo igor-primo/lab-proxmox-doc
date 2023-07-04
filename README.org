@@ -45,7 +45,7 @@ RPM, deve-se utilizar os comandos cabíveis.
   sudo dnf install python39 python3-pip -y
   pip3 install --upgrade pip
 #+end_src
-* Clonar repositório do Kubespray e instalar dependências.
+* Clonar repositório do Kubespray e instalar dependências
 Caso a instalação esteja partindo de uma máquina exterior ao cluster,
 pode-se utilizar o seguinte script; mas se a instalação estiver
 partindo de um dos nós do cluster, deve-se omitir a instalação do
@@ -190,7 +190,7 @@ Mais detalhes são documentados no repositório oficial do [[https://github.com/
 * Documentação extendida
 Para mais detalhes sobre conceitos do Kubernetes, vide a
 [[https://kubernetes.io/pt-br/docs/concepts/overview/working-with-objects/kubernetes-objects/#descrevendo-um-objeto-kubernetes][documentação oficial]].
-* Instalação do Wordpress + MySQL
+* Instalação do Wordpr'ess + MySQL
 Terminologia:
 - Node :: Máquinas físicas ou virtuais que executam Pods.
 - Pod :: Um Pod é um grupo de um ou mais contêineres, com
@@ -1348,7 +1348,11 @@ Dashboards.
 3) Clique em 'Upload JSON file'.
 4) Navegue até o diretório
    lab-proxmox/gitlab/dashboards/grafana-dashboards-master/omnibus/
-5) Escolha o Dashboard que você deseja visualizar. Por exemplo, gitaly.json.
+5) Escolha o Dashboard que você deseja visualizar. Por exemplo,
+   gitaly.json.
+
+O dashboard mais útil para propósitos de experimentos com o cluster
+Kubernetes é o localizado em lab-proxmox-doc/dashboards/kubernetes-cluster-monitoring-via-prometheus_rev3.json
 * Configurações alternativas
 ** Deploy do Prometheus
 Para deploy do Prometheus pode-se utilizar a seguinte
