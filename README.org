@@ -1466,7 +1466,23 @@ Dashboards.
    gitaly.json.
 
 O dashboard mais útil para propósitos de experimentos com o cluster
-Kubernetes é o localizado em lab-proxmox-doc/dashboards/kubernetes-cluster-monitoring-via-prometheus_rev3.json
+Kubernetes é o localizado em
+lab-proxmox-doc/dashboards/kubernetes-cluster-monitoring-via-prometheus_rev3.json.
+Para visualizar esse dashboard você precisa criar uma nova Data Source Prometheus
+chamada DS_PROMETHEUS e associar ao dashboard.
+* Testando uma pipeline CI/CD
+Para testar uma pipeline CI/CD você pode clonar esse [[https://gitlab.trt20.jus.br/igor.primo/pipeline-test][repositório]] e
+subí-lo para sua instância, por exemplo, colocá-lo no repositório
+utilizado para associar um Runner em uma das seções anteriores.
+
+Ao fazer o primeiro push, a pipeline CI/CD iniciará automaticamente. O
+log da pipeline pode ser visualizada pelo caminho CI/CD ->
+Pipelines. No campo "Stages" você verá as Jobs. Clique no Job cujo log
+você quer visualizar.
+
+No dashboard monitor do cluster Kubernetes você pode visualizar
+informações como o uso de CPU por nó, por contêiner, por processo,
+etc. O mesmo a respeito de uso de memória e de rede.
 * Configurações alternativas
 ** Deploy do Prometheus
 Para deploy do Prometheus pode-se utilizar a seguinte
