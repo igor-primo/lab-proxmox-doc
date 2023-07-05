@@ -14,7 +14,13 @@ máquina exterior ao cluster para fazer a instalação.
 O login de usuário root via SSH deve
 estar habilitado também.
 * Clonar VMs
-A clonagem das VMs é feita através do ProxMox manualmente.
+A clonagem das VMs é feita através do ProxMox manualmente. Para clonar
+uma VM utilize o template chamado "rocky9vm"; clique com o botão
+direito do mouse na VM e clique em "clone". Ajuste as configurações
+como quiser, mas recomenda-se a utilização de modo "Linked Clone". Uma
+VM gerada com essa configuração requer menos espaço em disco, mas não
+pode executar sem acesso à VM template base utilizida, i.e.,
+"rocky9vm". Após a clonagem você terá uma nova VM para ser utilizada.
 * SSH
 Criação de chaves assimétricas para acesso SSH sem senha. Esse passo deve ser
 feito manualmente.
